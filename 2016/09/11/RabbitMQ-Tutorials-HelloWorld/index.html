@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=6.3.0" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.3.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.3.0" color="#222">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '6.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="介绍RabbitMQ是一个消息代理。它的核心原理非常简单：接收和发送消息。你可以把它想像成一个邮局：你把信件放入邮箱，邮递员就会把信件投递到你的收件人处。在这个比喻中，RabbitMQ是一个邮箱、邮局、邮递员。 RabbitMQ和邮局的主要区别是，它处理的不是纸，而是接收、存储和发送二进制的数据——消息。 一般提到RabbitMQ和消息，都用到一些专有名词。  生产(Producing)意思就是发">
+<meta name="keywords" content="RabbitMQ">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RabbitMQ Tutorials (Hello World)">
+<meta property="og:url" content="http://cjoop.top/2016/09/11/RabbitMQ-Tutorials-HelloWorld/index.html">
+<meta property="og:site_name" content="永恒之道">
+<meta property="og:description" content="介绍RabbitMQ是一个消息代理。它的核心原理非常简单：接收和发送消息。你可以把它想像成一个邮局：你把信件放入邮箱，邮递员就会把信件投递到你的收件人处。在这个比喻中，RabbitMQ是一个邮箱、邮局、邮递员。 RabbitMQ和邮局的主要区别是，它处理的不是纸，而是接收、存储和发送二进制的数据——消息。 一般提到RabbitMQ和消息，都用到一些专有名词。  生产(Producing)意思就是发">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://www.rabbitmq.com/img/tutorials/producer.png">
+<meta property="og:image" content="http://www.rabbitmq.com/img/tutorials/queue.png">
+<meta property="og:image" content="http://www.rabbitmq.com/img/tutorials/consumer.png">
+<meta property="og:image" content="http://www.rabbitmq.com/img/tutorials/python-one.png">
+<meta property="og:image" content="http://www.rabbitmq.com/img/tutorials/sending.png">
+<meta property="og:image" content="http://www.rabbitmq.com/img/tutorials/receiving.png">
+<meta property="og:updated_time" content="2018-06-23T08:04:07.897Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="RabbitMQ Tutorials (Hello World)">
+<meta name="twitter:description" content="介绍RabbitMQ是一个消息代理。它的核心原理非常简单：接收和发送消息。你可以把它想像成一个邮局：你把信件放入邮箱，邮递员就会把信件投递到你的收件人处。在这个比喻中，RabbitMQ是一个邮箱、邮局、邮递员。 RabbitMQ和邮局的主要区别是，它处理的不是纸，而是接收、存储和发送二进制的数据——消息。 一般提到RabbitMQ和消息，都用到一些专有名词。  生产(Producing)意思就是发">
+<meta name="twitter:image" content="http://www.rabbitmq.com/img/tutorials/producer.png">
+
+
+
+
+
+
+  <link rel="canonical" href="http://cjoop.top/2016/09/11/RabbitMQ-Tutorials-HelloWorld/"/>
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>RabbitMQ Tutorials (Hello World) | 永恒之道</title>
+  
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">永恒之道</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br />首页</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+    <a href="/tags/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />标签</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+    <a href="/categories/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-th"></i> <br />分类</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />归档</a>
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://cjoop.top/2016/09/11/RabbitMQ-Tutorials-HelloWorld/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="陈均">
+      <meta itemprop="description" content="世间万物皆空。唯其空，便能包容万物。">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="永恒之道">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">RabbitMQ Tutorials (Hello World)
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2016-09-11 22:18:18" itemprop="dateCreated datePublished" datetime="2016-09-11T22:18:18+08:00">2016-09-11</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2018-06-23 16:04:07" itemprop="dateModified" datetime="2018-06-23T16:04:07+08:00">2018-06-23</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/RabbitMQ/" itemprop="url" rel="index"><span itemprop="name">RabbitMQ</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2016/09/11/RabbitMQ-Tutorials-HelloWorld/#comments" itemprop="discussionUrl">
+                
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2016/09/11/RabbitMQ-Tutorials-HelloWorld/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/2016/09/11/RabbitMQ-Tutorials-HelloWorld/" class="leancloud_visitors" data-flag-title="RabbitMQ Tutorials (Hello World)">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数：</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h2><p>RabbitMQ是一个消息代理。它的核心原理非常简单：接收和发送消息。你可以把它想像成一个邮局：你把信件放入邮箱，邮递员就会把信件投递到你的收件人处。在这个比喻中，RabbitMQ是一个邮箱、邮局、邮递员。</p>
+<p>RabbitMQ和邮局的主要区别是，它处理的不是纸，而是接收、存储和发送二进制的数据——消息。</p>
+<p>一般提到RabbitMQ和消息，都用到一些专有名词。</p>
+<ul>
+<li>生产(Producing)意思就是发送。发送消息的程序就是一个生产者(producer)。我们一般用”P”来表示：<br><img src="http://www.rabbitmq.com/img/tutorials/producer.png" alt="生产"></li>
+<li>队列(queue)就是邮箱的名称。消息通过你的应用程序和RabbitMQ进行传输，它们能够只存储在一个队列（queue）中。队列（queue）没有任何限制，你要存储多少消息都可以——基本上是一个无限的缓冲。多个生产者（producers）能够把消息发送给同一个队列，同样，多个消费者（consumers）也能够从一个队列（queue）中获取数据。队列可以用下图标识：<br><img src="http://www.rabbitmq.com/img/tutorials/queue.png" alt="此处输入图片的描述"></li>
+<li>消费（Consuming）和获取消息是一样的意思。一个消费者（consumer）就是一个等待获取消息的程序。我们把它画作”C”：<br><img src="http://www.rabbitmq.com/img/tutorials/consumer.png" alt="消费"></li>
+</ul>
+<p>注意：一般生产者，消费者和代理不必部署在同一台机子上。</p>
+<h2 id="“Hello-World”"><a href="#“Hello-World”" class="headerlink" title="“Hello World”"></a>“Hello World”</h2><p>(using the Java Client)<br>我们将在这个章节里创建2个java程序;一个生产者发送一条消息，一个消费者接受消息并且打印输出。我们跳过Java API的细节，从最简单的事情开始说起。通过一条 “Hello World”作为消息。</p>
+<p>在下面的图表中， “P” 是我们的生产者,”C”是我们的消费者。中间是一个队列 - 作为RabbitMQ的消息缓冲区提供给消费者。<br><img src="http://www.rabbitmq.com/img/tutorials/python-one.png" alt=""></p>
+<h2 id="The-Java-client-library"><a href="#The-Java-client-library" class="headerlink" title="The Java client library"></a>The Java client library</h2><p>RabbitMQ 支持多种协议。该指南使用的是AMQP 0-9-1协议，这是一个开放的，通用的消息协议。RabbitMQ 提供了<a href="http://rabbitmq.com/devtools.html" target="_blank" rel="noopener">许多客户端语言</a>的支持。我们将使用Java client 提供商。<br>下载<a href="http://www.rabbitmq.com/java-client.html" target="_blank" rel="noopener">客户端依赖包</a>,检查签名信息。解压到你的工作目录：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ unzip rabbitmq-java-client-bin-*.zip</span><br><span class="line">$ cp rabbitmq-java-client-bin-*/*.jar ./</span><br></pre></td></tr></table></figure></p>
+<p>(这个客户端你也可以从Maven的中心仓库去下载，groupId= com.rabbitmq,artifactId=amqp-client)<br>现在我们有了客户端的依赖，就可以编写一些代码了。</p>
+<h2 id="Sending-发送端"><a href="#Sending-发送端" class="headerlink" title="Sending 发送端"></a>Sending 发送端</h2><p><img src="http://www.rabbitmq.com/img/tutorials/sending.png" alt=""><br>我们将执行我们的消息发送端发送给我们的消息接收端。发送者将连接到RabbitMQ，发送一条消息，然后退出。<br>在Send.java文件中，我们需要引入一些依赖：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> com.rabbitmq.client.ConnectionFactory;</span><br><span class="line"><span class="keyword">import</span> com.rabbitmq.client.Connection;</span><br><span class="line"><span class="keyword">import</span> com.rabbitmq.client.Channel;</span><br></pre></td></tr></table></figure></p>
+<p>在类里面设置队列的名称：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Send</span> </span>&#123;</span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">static</span> String QUEUE_NAME = <span class="string">"hello"</span>;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] argv)</span></span></span><br><span class="line"><span class="function">      <span class="keyword">throws</span> java.io.IOException </span>&#123;</span><br><span class="line">      ...</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>我们创建一个连接到服务器：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ConnectionFactory factory = <span class="keyword">new</span> ConnectionFactory();</span><br><span class="line">factory.setHost(<span class="string">"localhost"</span>);</span><br><span class="line">Connection connection = factory.newConnection();</span><br><span class="line">Channel channel = connection.createChannel();</span><br></pre></td></tr></table></figure></p>
+<p>这里创建了一个Socket连接，负责协议版本协商和身份验证等等，这里由于连接的是本地机子，所以取值localhost。如果我们想连接到其他机器的代理服务，我们只需要添加IP地址就可以了。</p>
+<p>接下来，创建一个channel(通道),大多数任务都是在这里完成的。</p>
+<p>要发送消息，我们必须首先定义一个queue(队列)，然后我们才成把消息发送给queue:<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">channel.queueDeclare(QUEUE_NAME, <span class="keyword">false</span>, <span class="keyword">false</span>, <span class="keyword">false</span>, <span class="keyword">null</span>);</span><br><span class="line">String message = <span class="string">"Hello World!"</span>;</span><br><span class="line">channel.basicPublish(<span class="string">""</span>, QUEUE_NAME, <span class="keyword">null</span>, message.getBytes());</span><br><span class="line">System.out.println(<span class="string">" [x] Sent '"</span> + message + <span class="string">"'"</span>);</span><br></pre></td></tr></table></figure></p>
+<p>queue 的定义具有幂等性，如果不存在就会被创建。消息的内容是一个字节数组，所以你可以对内容进行编码。</p>
+<p>最后，我们关闭通道和连接。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">channel.close();</span><br><span class="line">connection.close();</span><br></pre></td></tr></table></figure></p>
+<p>整个<a href="http://github.com/rabbitmq/rabbitmq-tutorials/blob/master/java/Send.java" target="_blank" rel="noopener">Send.java</a>类在这里查看。<br>Sending doesn’t work!<br>发送端不工作的情况<br>如果你第一次使用RabbitMQ并且没有看到发送的消息，你可以不知道是什么原因导致的错误，也许是没有足够的磁盘空间(默认需要1Gb的空间).<a href="http://www.rabbitmq.com/configure.html#config-items" target="_blank" rel="noopener">配置文档</a>会告诉你怎么设置disk_free_limit。</p>
+<h2 id="Receiving-接收者"><a href="#Receiving-接收者" class="headerlink" title="Receiving 接收者"></a>Receiving 接收者</h2><p>我们的接收者会从RabbitMQ拉取消息，不像发送者发送消息那样，接收端会保持监听消息，然后打印输出。<br><img src="http://www.rabbitmq.com/img/tutorials/receiving.png" alt=""><br>在Recv.java里也需要引入一些依赖：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> com.rabbitmq.client.ConnectionFactory;</span><br><span class="line"><span class="keyword">import</span> com.rabbitmq.client.Connection;</span><br><span class="line"><span class="keyword">import</span> com.rabbitmq.client.Channel;</span><br><span class="line"><span class="keyword">import</span> com.rabbitmq.client.Consumer;</span><br><span class="line"><span class="keyword">import</span> com.rabbitmq.client.DefaultConsumer;</span><br></pre></td></tr></table></figure></p>
+<p>DefaultConsumer类实现了Consumer接口，从服务端拉取消息。</p>
+<p>设置上和发送端一样；打开一个连接和一个通道，并且声明一个队列进行消费。这里要和发送端的队列保持一致。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Recv</span> </span>&#123;</span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">static</span> String QUEUE_NAME = <span class="string">"hello"</span>;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] argv)</span></span></span><br><span class="line"><span class="function">      <span class="keyword">throws</span> java.io.IOException,</span></span><br><span class="line"><span class="function">             java.lang.InterruptedException </span>&#123;</span><br><span class="line"></span><br><span class="line">    ConnectionFactory factory = <span class="keyword">new</span> ConnectionFactory();</span><br><span class="line">    factory.setHost(<span class="string">"localhost"</span>);</span><br><span class="line">    Connection connection = factory.newConnection();</span><br><span class="line">    Channel channel = connection.createChannel();</span><br><span class="line"></span><br><span class="line">    channel.queueDeclare(QUEUE_NAME, <span class="keyword">false</span>, <span class="keyword">false</span>, <span class="keyword">false</span>, <span class="keyword">null</span>);</span><br><span class="line">    System.out.println(<span class="string">" [*] Waiting for messages. To exit press CTRL+C"</span>);</span><br><span class="line">    ...</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>也许你已经发现，我们在接收端也定义了hello队列。这是为了确保，如果接收端先启动的时候，队列已经存在。</p>
+<p>接下来，我们就要告诉服务器来交付消息。由于推送消息是一个异步操作，因此我们使用回调函数，DefaultConsumer.handleDelivery来处理。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">Consumer consumer = <span class="keyword">new</span> DefaultConsumer(channel) &#123;</span><br><span class="line">  <span class="meta">@Override</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">handleDelivery</span><span class="params">(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, <span class="keyword">byte</span>[] body)</span></span></span><br><span class="line"><span class="function">      <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    String message = <span class="keyword">new</span> String(body, <span class="string">"UTF-8"</span>);</span><br><span class="line">    System.out.println(<span class="string">" [x] Received '"</span> + message + <span class="string">"'"</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;;</span><br><span class="line">channel.basicConsume(QUEUE_NAME, <span class="keyword">true</span>, consumer);</span><br></pre></td></tr></table></figure></p>
+<p>整个<a href="http://github.com/rabbitmq/rabbitmq-tutorials/blob/master/java/Recv.java" target="_blank" rel="noopener">Recv.java</a>类在这里查看。</p>
+<h2 id="Putting-it-all-together"><a href="#Putting-it-all-together" class="headerlink" title="Putting it all together"></a>Putting it all together</h2><p>通过javac对2个文件进行编译操作:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ javac -cp rabbitmq-client.jar Send.java Recv.java</span><br></pre></td></tr></table></figure></p>
+<p>然后运行他们，你需要将rabbitmq-client.jar放到classpath下，在一个终端里运行发送端：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ java -cp .:commons-io-1.2.jar:commons-cli-1.1.jar:rabbitmq-client.jar Send</span><br></pre></td></tr></table></figure></p>
+<p>然后运行接收端：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ java -cp .:commons-io-1.2.jar:commons-cli-1.1.jar:rabbitmq-client.jar Recv</span><br></pre></td></tr></table></figure></p>
+<p>接收端从RabbitMQ获取消息并打印，接收端会一直保持运行，等待消息到来（使用Ctrl-C 停止运行），你可以尝试运行发送端。</p>
+<p>如果你想检查这个队列，使用 rabbitmqctl list_queues.<br>hello<br>移动到<a href="http://www.rabbitmq.com/tutorials/tutorial-two-java.html" target="_blank" rel="noopener">第二章节</a>怎么构建一个简单的工作队列。</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/RabbitMQ/" rel="tag"># RabbitMQ</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/09/11/RabbitMQ-Install-on-Windows/" rel="next" title="RabbitMQ Install on Windows">
+                <i class="fa fa-chevron-left"></i> RabbitMQ Install on Windows
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/09/15/RabbitMQ-Tutorials-WorkQueues/" rel="prev" title="RabbitMQ Tutorials (Work queues)">
+                RabbitMQ Tutorials (Work queues) <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/images/avatar.jpg"
+                alt="陈均" />
+            
+              <p class="site-author-name" itemprop="name">陈均</p>
+              <p class="site-description motion-element" itemprop="description">世间万物皆空。唯其空，便能包容万物。</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">28</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">11</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">11</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#介绍"><span class="nav-number">1.</span> <span class="nav-text">介绍</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#“Hello-World”"><span class="nav-number">2.</span> <span class="nav-text">“Hello World”</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#The-Java-client-library"><span class="nav-number">3.</span> <span class="nav-text">The Java client library</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Sending-发送端"><span class="nav-number">4.</span> <span class="nav-text">Sending 发送端</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Receiving-接收者"><span class="nav-number">5.</span> <span class="nav-text">Receiving 接收者</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Putting-it-all-together"><span class="nav-number">6.</span> <span class="nav-text">Putting it all together</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">陈均</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动 v3.7.1</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Pisces</a> v6.3.0</div>
+
+
+
+  <div class="footer-custom"><a target="_blank" rel="external nofollow" href="http://www.beian.miit.gov.cn"><b>蜀ICP备17001803号</b></a></div>
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.3.0"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=6.3.0"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.3.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.3.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.3.0"></script>
+
+
+
+  
+
+  
+    <script id="dsq-count-scr" src="https://cjoop.disqus.com/count.js" async></script>
+  
+
+  
+    <script type="text/javascript">
+      var disqus_config = function () {
+        this.page.url = 'http://cjoop.top/2016/09/11/RabbitMQ-Tutorials-HelloWorld/';
+        this.page.identifier = '2016/09/11/RabbitMQ-Tutorials-HelloWorld/';
+        this.page.title = 'RabbitMQ Tutorials (Hello World)';
+        };
+      function loadComments () {
+        var d = document, s = d.createElement('script');
+        s.src = 'https://cjoop.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      }
+      
+        loadComments();
+      
+    </script>
+  
+
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("X2YtjBbKwWtfKz2jH6SBGpLa-gzGzoHsz", "S6zjXgoW7l4HGNvpcJrXroPJ");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            
+            counter.save(null, {
+              success: function(counter) {
+                
+                  var $element = $(document.getElementById(url));
+                  $element.find('.leancloud-visitors-count').text(counter.get('time'));
+                
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            
+              var $element = $(document.getElementById(url));
+              $element.find('.leancloud-visitors-count').text('Counter not initialized! See more at console err msg.');
+              console.error('ATTENTION! LeanCloud counter has security bug, see here how to solve it: https://github.com/theme-next/hexo-leancloud-counter-security. \n But you also can use LeanCloud without security, by set \'security\' option to \'false\'.');
+            
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

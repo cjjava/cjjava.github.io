@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=6.3.0" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.3.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.3.0" color="#222">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '6.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="OverviewJSCS 已经合并到了ESLint！JSCS 是一个能够指导你对代码风格进行检查和格式化的工具。 Presets注意：最简单的方式就是使用一个预先设置好的选项，如下：  Airbnb — https://github.com/airbnb/javascript Crockford — http://javascript.crockford.com/code.html Google">
+<meta name="keywords" content="Node.js">
+<meta property="og:type" content="article">
+<meta property="og:title" content="JSCS Tutorial">
+<meta property="og:url" content="http://cjoop.top/2015/09/01/JSCS-Tutorial/index.html">
+<meta property="og:site_name" content="永恒之道">
+<meta property="og:description" content="OverviewJSCS 已经合并到了ESLint！JSCS 是一个能够指导你对代码风格进行检查和格式化的工具。 Presets注意：最简单的方式就是使用一个预先设置好的选项，如下：  Airbnb — https://github.com/airbnb/javascript Crockford — http://javascript.crockford.com/code.html Google">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2018-06-23T08:04:07.882Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="JSCS Tutorial">
+<meta name="twitter:description" content="OverviewJSCS 已经合并到了ESLint！JSCS 是一个能够指导你对代码风格进行检查和格式化的工具。 Presets注意：最简单的方式就是使用一个预先设置好的选项，如下：  Airbnb — https://github.com/airbnb/javascript Crockford — http://javascript.crockford.com/code.html Google">
+
+
+
+
+
+
+  <link rel="canonical" href="http://cjoop.top/2015/09/01/JSCS-Tutorial/"/>
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>JSCS Tutorial | 永恒之道</title>
+  
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">永恒之道</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br />首页</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+    <a href="/tags/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />标签</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+    <a href="/categories/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-th"></i> <br />分类</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />归档</a>
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://cjoop.top/2015/09/01/JSCS-Tutorial/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="陈均">
+      <meta itemprop="description" content="世间万物皆空。唯其空，便能包容万物。">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="永恒之道">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">JSCS Tutorial
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2015-09-01 21:30:26" itemprop="dateCreated datePublished" datetime="2015-09-01T21:30:26+08:00">2015-09-01</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2018-06-23 16:04:07" itemprop="dateModified" datetime="2018-06-23T16:04:07+08:00">2018-06-23</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Node-js/" itemprop="url" rel="index"><span itemprop="name">Node.js</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2015/09/01/JSCS-Tutorial/#comments" itemprop="discussionUrl">
+                
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2015/09/01/JSCS-Tutorial/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/2015/09/01/JSCS-Tutorial/" class="leancloud_visitors" data-flag-title="JSCS Tutorial">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数：</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p>JSCS 已经合并到了ESLint！<br>JSCS 是一个能够指导你对代码风格进行检查和格式化的工具。</p>
+<h2 id="Presets"><a href="#Presets" class="headerlink" title="Presets"></a>Presets</h2><p>注意：最简单的方式就是使用一个预先设置好的选项，如下：</p>
+<ul>
+<li><a href="https://github.com/jscs-dev/node-jscs/blob/master/presets/airbnb.json" target="_blank" rel="noopener">Airbnb</a> — <a href="https://github.com/airbnb/javascript" target="_blank" rel="noopener">https://github.com/airbnb/javascript</a></li>
+<li><a href="https://github.com/jscs-dev/node-jscs/blob/master/presets/crockford.json" target="_blank" rel="noopener">Crockford</a> — <a href="http://javascript.crockford.com/code.html" target="_blank" rel="noopener">http://javascript.crockford.com/code.html</a></li>
+<li><a href="https://github.com/jscs-dev/node-jscs/blob/master/presets/google.json" target="_blank" rel="noopener">Google</a> — <a href="https://google-styleguide.googlecode.com/svn/trunk/javascriptguide.xml" target="_blank" rel="noopener">https://google-styleguide.googlecode.com/svn/trunk/javascriptguide.xml</a></li>
+<li><a href="https://github.com/jscs-dev/node-jscs/blob/master/presets/grunt.json" target="_blank" rel="noopener">Grunt</a> — <a href="http://gruntjs.com/contributing#syntax" target="_blank" rel="noopener">http://gruntjs.com/contributing#syntax</a></li>
+<li><a href="https://github.com/jscs-dev/node-jscs/blob/master/presets/idiomatic.json" target="_blank" rel="noopener">Idiomatic</a> — <a href="https://github.com/rwaldron/idiomatic.js#idiomatic-style-manifesto" target="_blank" rel="noopener">https://github.com/rwaldron/idiomatic.js#idiomatic-style-manifesto</a></li>
+<li><a href="https://github.com/jscs-dev/node-jscs/blob/master/presets/jquery.json" target="_blank" rel="noopener">jQuery</a> — <a href="https://contribute.jquery.org/style-guide/js/" target="_blank" rel="noopener">https://contribute.jquery.org/style-guide/js/</a></li>
+<li><a href="https://github.com/jscs-dev/node-jscs/blob/master/presets/mdcs.json" target="_blank" rel="noopener">MDCS</a> — <a href="https://github.com/mrdoob/three.js/wiki/Mr.doob%27s-Code-Style%E2%84%A2" target="_blank" rel="noopener">https://github.com/mrdoob/three.js/wiki/Mr.doob’s-Code-Style™</a></li>
+<li><a href="https://github.com/jscs-dev/node-jscs/blob/master/presets/node-style-guide.json" target="_blank" rel="noopener">node-style-guide</a> - <a href="https://github.com/felixge/node-style-guide" target="_blank" rel="noopener">https://github.com/felixge/node-style-guide</a></li>
+<li><a href="https://github.com/wikimedia/jscs-preset-wikimedia/blob/master/presets/wikimedia.json" target="_blank" rel="noopener">Wikimedia</a> — <a href="https://www.mediawiki.org/wiki/Manual:Coding_conventions/JavaScript" target="_blank" rel="noopener">https://www.mediawiki.org/wiki/Manual:Coding_conventions/JavaScript</a></li>
+<li><a href="https://github.com/jscs-dev/node-jscs/blob/master/presets/wordpress.json" target="_blank" rel="noopener">WordPress</a> — <a href="https://make.wordpress.org/core/handbook/coding-standards/javascript/" target="_blank" rel="noopener">https://make.wordpress.org/core/handbook/coding-standards/javascript/</a></li>
+</ul>
+<p>你可以在创建的配置文件.jscsrc中将任意一个规则禁用，只需要赋值null或者false，像这样：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    <span class="string">"preset"</span>: <span class="string">"jquery"</span>,</span><br><span class="line">    <span class="string">"requireCurlyBraces"</span>: null // or <span class="literal">false</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h2 id="Friendly-packages"><a href="#Friendly-packages" class="headerlink" title="Friendly packages"></a>Friendly packages</h2><ul>
+<li>Atom plugin: <a href="https://atom.io/packages/linter-jscs" target="_blank" rel="noopener">https://atom.io/packages/linter-jscs</a></li>
+<li>Brackets Extension: <a href="https://github.com/globexdesigns/brackets-jscs" target="_blank" rel="noopener">https://github.com/globexdesigns/brackets-jscs</a></li>
+<li>Grunt task: <a href="https://github.com/jscs-dev/grunt-jscs/" target="_blank" rel="noopener">https://github.com/jscs-dev/grunt-jscs/</a></li>
+<li>Gulp task: <a href="https://github.com/jscs-dev/gulp-jscs/" target="_blank" rel="noopener">https://github.com/jscs-dev/gulp-jscs/</a></li>
+<li>Overcommit Git pre-commit hook manager: <a href="https://github.com/brigade/overcommit/" target="_blank" rel="noopener">https://github.com/brigade/overcommit/</a></li>
+<li>SublimeText 3 Plugin: <a href="https://github.com/SublimeLinter/SublimeLinter-jscs/" target="_blank" rel="noopener">https://github.com/SublimeLinter/SublimeLinter-jscs/</a></li>
+<li>Syntastic VIM Plugin: <a href="https://github.com/scrooloose/syntastic/blob/master/syntax_checkers/javascript/jscs.vim/" target="_blank" rel="noopener">https://github.com/scrooloose/syntastic/…/syntax_checkers/javascript/jscs.vim/</a></li>
+<li>Web Essentials for Visual Studio 2013: <a href="https://github.com/madskristensen/WebEssentials2013/" target="_blank" rel="noopener">https://github.com/madskristensen/WebEssentials2013/</a></li>
+<li>IntelliJ IDEA, RubyMine, WebStorm, PhpStorm, PyCharm plugin: <a href="https://www.jetbrains.com/webstorm/help/jscs.html" target="_blank" rel="noopener">https://www.jetbrains.com/webstorm/help/jscs.html</a></li>
+<li>Visual Studio Code extension: <a href="https://github.com/microsoft/vscode-jscs" target="_blank" rel="noopener">https://github.com/microsoft/vscode-jscs</a></li>
+</ul>
+<h2 id="Extensions"><a href="#Extensions" class="headerlink" title="Extensions"></a>Extensions</h2><ul>
+<li>A TeamCity reporter: <a href="https://github.com/wurmr/jscs-teamcity-reporter" target="_blank" rel="noopener">https://github.com/wurmr/jscs-teamcity-reporter</a></li>
+<li>JSDoc rules extension: <a href="https://github.com/jscs-dev/jscs-jsdoc" target="_blank" rel="noopener">https://github.com/jscs-dev/jscs-jsdoc</a></li>
+</ul>
+<h2 id="Installation"><a href="#Installation" class="headerlink" title="Installation"></a>Installation</h2><p>jscs可以使用npm来进行安装：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">npm install jscs -g</span><br></pre></td></tr></table></figure></p>
+<p>你可以使用以下命令从项目的根路径运行：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jscs path[ path[...]]</span><br></pre></td></tr></table></figure></p>
+<p>你还可以通过管道输出到jscs:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat myfile.js | jscs</span><br></pre></td></tr></table></figure></p>
+<h2 id="Programmatic-Usage"><a href="#Programmatic-Usage" class="headerlink" title="Programmatic Usage"></a>Programmatic Usage</h2><p>jscs 可以在你的程序代码里面直接使用：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">var Checker = require(<span class="string">"jscs"</span>);</span><br><span class="line">var checker = new Checker();</span><br><span class="line">checker.registerDefaultRules();</span><br></pre></td></tr></table></figure></p>
+<p>你可以配置检查器实例去使用指定的选项，或者预设的值：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">// Configure the checker with an options object</span><br><span class="line">checker.configure(&#123;</span><br><span class="line">    <span class="string">"requireCurlyBraces"</span>: [</span><br><span class="line">        <span class="string">"if"</span>,</span><br><span class="line">        <span class="string">"else"</span>,</span><br><span class="line">        <span class="string">"for"</span></span><br><span class="line">    ]</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line">// Use the jQuery preset</span><br><span class="line">checker.configure(&#123;</span><br><span class="line">    preset: <span class="string">"jquery"</span></span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line">// Use the Google preset, but override or remove some options</span><br><span class="line">checker.configure(&#123;</span><br><span class="line">    preset: <span class="string">"google"</span>,</span><br><span class="line">    disallowMultipleLineBreaks: null, // or <span class="literal">false</span></span><br><span class="line">    validateIndentation: <span class="string">"\t"</span></span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure></p>
+<p>要检查一个字符串类型的代码，通过使用checkString方法：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">var results = checker.checkString(stringOfCode);</span><br><span class="line">var errors = results.getErrorList();</span><br></pre></td></tr></table></figure></p>
+<p>这个results对象可以获取每个错误的描述信息：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">results.getErrorList().forEach(<span class="keyword">function</span>(error) &#123;</span><br><span class="line">    var colorizeOutput = <span class="literal">true</span>;</span><br><span class="line">    console.log(results.explainError(error, colorizeOutput) + <span class="string">"\n"</span>);</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure></p>
+<h2 id="CLI"><a href="#CLI" class="headerlink" title="CLI"></a>CLI</h2><p>某些CLI选项也可以放到你的.jscsrc文件中（比如preset）。<br>下面的这些选项已经从3.0中移除掉了(esnext默认就是激活的).</p>
+<ul>
+<li>–esnext (-e)</li>
+<li>–esprima (-s)</li>
+</ul>
+<p>这个verbose标记也在3.0被移除了，因为它默认就被开启的(所以你知道哪些规则是错误的)。</p>
+<h3 id="–fix-x"><a href="#–fix-x" class="headerlink" title="–fix (-x)"></a>–fix (-x)</h3><p>可以修复所有支持的风格。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jscs path[ path[...]] --fix</span><br></pre></td></tr></table></figure></p>
+<h3 id="–auto-configure"><a href="#–auto-configure" class="headerlink" title="–auto-configure"></a>–auto-configure</h3><p>自动生成一个你选择的预置规则文件：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jscs --auto-configure path</span><br></pre></td></tr></table></figure></p>
+<p>path 可以是文件或者目录。</p>
+<h3 id="–config-c"><a href="#–config-c" class="headerlink" title="–config (-c)"></a>–config (-c)</h3><p>允许指定一个具体路径的配置文件：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jscs path[ path[...]] --config=./.config.json</span><br></pre></td></tr></table></figure></p>
+<p>若这个–config没有指定，jscs会去package.json文件中通过jscsConfig选项来找.jscsrc和.jscs.json文件。</p>
+<h3 id="–preset-p"><a href="#–preset-p" class="headerlink" title="–preset (-p)"></a>–preset (-p)</h3><p>指定预定义的代码风格规则：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jscs path[ path[...]] --preset=jquery</span><br></pre></td></tr></table></figure></p>
+<p>你需要穿点一个.jscsrc配置文件来添加/删除这些规则。</p>
+<h3 id="–extract"><a href="#–extract" class="headerlink" title="–extract"></a>–extract</h3><p>使用这个选项可以检查嵌入式的js代码：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jscs path[ path[...]] --extract *.html</span><br></pre></td></tr></table></figure></p>
+<p>如果需要的话可以设置多个：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jscs path[ path[...]] --extract *.html --extract *.htm</span><br></pre></td></tr></table></figure></p>
+<p>目前，只支持html格式的，但是不能够自动修复。</p>
+<h3 id="–reporter-r"><a href="#–reporter-r" class="headerlink" title="–reporter (-r)"></a>–reporter (-r)</h3><p>jscs 提供了8种方式的报告: checkstyle, console, inline, inlinesingle, junit, text, unix and json.<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jscs path[ path[...]] --reporter=console</span><br></pre></td></tr></table></figure></p>
+<p>还可以指定自己的路径文件：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jscs path[ path[...]] --reporter=./some-dir/my-reporter.js</span><br></pre></td></tr></table></figure></p>
+<h3 id="–error-filter-f"><a href="#–error-filter-f" class="headerlink" title="–error-filter (-f)"></a>–error-filter (-f)</h3><p>错误过滤器：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jscs path[ path[...]] --error-filter=path/to/my/module.js</span><br></pre></td></tr></table></figure></p>
+<h3 id="–no-colors-n"><a href="#–no-colors-n" class="headerlink" title="–no-colors (-n)"></a>–no-colors (-n)</h3><p>无颜色输出。</p>
+<h3 id="–max-errors-m"><a href="#–max-errors-m" class="headerlink" title="–max-errors (-m)"></a>–max-errors (-m)</h3><p>设置报告的最大错误数量。（-1表示报告所有的错误）</p>
+<h3 id="–help-h"><a href="#–help-h" class="headerlink" title="–help (-h)"></a>–help (-h)</h3><p>输出使用信息。</p>
+<h3 id="–version-V"><a href="#–version-V" class="headerlink" title="–version (-V)"></a>–version (-V)</h3><p>输出jscs版本信息。</p>
+<h2 id="Options"><a href="#Options" class="headerlink" title="Options"></a>Options</h2><p>以下选项已经在3.0版本中被移除（esnext默认是激活的）。</p>
+<ul>
+<li><p>esnext: Attempts to parse your code as ES6+, JSX, and Flow using babylon as the underlying parser.</p>
+</li>
+<li><p>esprima: Attempts to parse your code with a custom Esprima version.</p>
+</li>
+<li><p>esprimaOptions: Custom options to be passed to esprima.parse(code, options)</p>
+</li>
+</ul>
+<p>verbose: Prepends the name of the offending rule to all error messages.</p>
+<h3 id="plugins"><a href="#plugins" class="headerlink" title="plugins"></a>plugins</h3><p>从指定的多个路径加载插件。详细信息查看<a href="https://github.com/jscs-dev/node-jscs/wiki/Plugin-API" target="_blank" rel="noopener">Plugin API</a><br>Values: Array of NPM package names or paths<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">"plugins"</span>: [<span class="string">"jscs-plugin"</span>, <span class="string">"./lib/project-jscs-plugin"</span>]</span><br></pre></td></tr></table></figure></p>
+<h3 id="additionalRules"><a href="#additionalRules" class="headerlink" title="additionalRules"></a>additionalRules</h3><p>额外规则的路径。<br>Type: Array<br>Values: Array of file matching patterns<br><strong>Example</strong><br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">"additionalRules"</span>: [<span class="string">"project-rules/*.js"</span>]</span><br></pre></td></tr></table></figure></p>
+<h3 id="preset"><a href="#preset" class="headerlink" title="preset"></a>preset</h3><p>集成预定义的规则。<br>Type: String</p>
+<p>Values: 你可以选择一个默认的规则：”airbnb”, “crockford”, “google”, “jquery”, “mdcs”, “node-style-guide”, “wikimedia”, “wordpress”, “idiomatic”.<br>或者从你的本地加载。<br><strong>Example</strong><br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">"preset"</span>: <span class="string">"jquery"</span></span><br><span class="line"><span class="string">"preset"</span>: <span class="string">"./path-to-your-preset"</span></span><br><span class="line"></span><br><span class="line">// If your preset called <span class="string">"jscs-your-preset-node_modules-path"</span></span><br><span class="line">// You can either define full name or omit <span class="string">"jscs-"</span> prefix -</span><br><span class="line"><span class="string">"preset"</span>: <span class="string">"your-preset-node_modules-path"</span></span><br></pre></td></tr></table></figure></p>
+<p>你也可以通过指定null或者false来禁用指定的预设规则。</p>
+<h3 id="excludeFiles"><a href="#excludeFiles" class="headerlink" title="excludeFiles"></a>excludeFiles</h3><p>排除不需要检查的文件。<br>Type: Array</p>
+<p>Values: Array of file matching patterns</p>
+<p><strong>Example</strong><br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">// Use `<span class="string">"!foo"</span>` to specifically include a file/folder</span><br><span class="line"><span class="string">"excludeFiles"</span>: [<span class="string">"folder_to_exclude/**"</span>, <span class="string">"src/!(bar|foo)"</span>]</span><br></pre></td></tr></table></figure></p>
+<p><strong>Default</strong><br>这个 .git 和 node_modules 文件夹默认被排除。</p>
+<h3 id="fileExtensions"><a href="#fileExtensions" class="headerlink" title="fileExtensions"></a>fileExtensions</h3><p>改变文件的扩展类型。<br>type: Array or String or “*”</p>
+<p>Values: 单个文件后缀或者数组，以.开头，匹配不区分大小写，如果是”*”表示匹配所有的文件。<br><strong>Example</strong><br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">"fileExtensions"</span>: [<span class="string">".js"</span>, <span class="string">".jsx"</span>]</span><br></pre></td></tr></table></figure></p>
+<p><strong>Default</strong><br>.js 后缀的文件是默认被处理的格式。</p>
+<h3 id="extract"><a href="#extract" class="headerlink" title="extract"></a>extract</h3><p>设置嵌入式代码被提取的文件格式。</p>
+<p>Type: Array or Boolean</p>
+<p>Values: Array of file matching patterns</p>
+<p>js代码提取不会匹配fileExtensions 或者 excludeFiles设置过的。目前只支持html格式的。</p>
+<p><strong>Example</strong></p>
+<p>“extract”: [“<em>.htm”, “</em>.html”]<br><strong>Value</strong> true</p>
+<p>如果设置的值为true，将从.htm,.html或者.xhtml后缀的文件提取代码。</p>
+<h2 id="maxErrors"><a href="#maxErrors" class="headerlink" title="maxErrors"></a>maxErrors</h2><p>设置报告的最大错误数量（通过设置-1或者null输出所有的错误）。如果fix属性被激活则忽略。</p>
+<p>Type: Number|null</p>
+<p>Default: 50</p>
+<p><strong>Example</strong><br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">// Report only the first 10 errors</span><br><span class="line"><span class="string">"maxErrors"</span>: 10</span><br><span class="line"></span><br><span class="line">// Report all errors</span><br><span class="line"><span class="string">"maxErrors"</span>: -1</span><br><span class="line"><span class="string">"maxErrors"</span>: null</span><br></pre></td></tr></table></figure></p>
+<h2 id="fix"><a href="#fix" class="headerlink" title="fix"></a>fix</h2><p>将修复所有支持的代码规则。</p>
+<p>Type: Boolean|null</p>
+<p>Default: false</p>
+<h2 id="es3"><a href="#es3" class="headerlink" title="es3"></a>es3</h2><p>Use ES3 reserved words.</p>
+<p>Type: Boolean</p>
+<p>Value: true</p>
+<p><strong>Example</strong></p>
+<p>“es3”: true</p>
+<h2 id="errorFilter"><a href="#errorFilter" class="headerlink" title="errorFilter"></a>errorFilter</h2><p>错误过滤器，根据返回的值来决定是否报告这个错误。</p>
+<p>Type: String</p>
+<p><strong>Example</strong><br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">"errorFilter"</span>: <span class="string">"path/to/my/filter.js"</span></span><br></pre></td></tr></table></figure></p>
+<p>See <a href="https://github.com/jscs-dev/node-jscs/wiki/Error-Filters" target="_blank" rel="noopener">how to define an error filter</a>.</p>
+<h2 id="Error-Suppression"><a href="#Error-Suppression" class="headerlink" title="Error Suppression"></a>Error Suppression</h2><h3 id="Disabling-a-Rule"><a href="#Disabling-a-Rule" class="headerlink" title="Disabling a Rule"></a>Disabling a Rule</h3><p>通过在你的.jscsrc配置里面指定null可以禁用规则。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    <span class="string">"preset"</span>: <span class="string">"jquery"</span>,</span><br><span class="line">    <span class="string">"requireCurlyBraces"</span>: null</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="Inline-Comments"><a href="#Inline-Comments" class="headerlink" title="Inline Comments"></a>Inline Comments</h3><p>你也可以通过注释的写法来禁用或者激活：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/* jscs: <span class="built_in">enable</span> */</span><br><span class="line">// jscs: <span class="built_in">enable</span></span><br></pre></td></tr></table></figure></p>
+<p>你可以同时使用以上几种方式来禁用规则。</p>
+<h3 id="Disabling-All-Rules"><a href="#Disabling-All-Rules" class="headerlink" title="Disabling All Rules"></a>Disabling All Rules</h3><p>The placement of the special comments will disable or enable the checking of all rules against the code that appears after the comments。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">var a = b;</span><br><span class="line">// jscs:<span class="built_in">disable</span></span><br><span class="line">var c = d; // all errors on this line will be ignored</span><br><span class="line">// jscs:<span class="built_in">enable</span></span><br><span class="line">var e = f; // all errors on this line will be reported</span><br></pre></td></tr></table></figure></p>
+<h3 id="Disabling-Specific-Rules"><a href="#Disabling-Specific-Rules" class="headerlink" title="Disabling Specific Rules"></a>Disabling Specific Rules</h3><p>通过行注释jscs:disable来禁用指定的规则或者jscs:enable来激活规则。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">// jscs:<span class="built_in">disable</span> requireCurlyBraces</span><br><span class="line"><span class="keyword">if</span> (x) y(); // all errors from requireCurlyBraces on this line will be ignored</span><br><span class="line">// jscs:<span class="built_in">enable</span> requireCurlyBraces</span><br><span class="line"><span class="keyword">if</span> (z) a(); // all errors, including from requireCurlyBraces, on this line will be reported</span><br></pre></td></tr></table></figure></p>
+<h3 id="Disabling-Specific-Rules-For-a-Single-Line"><a href="#Disabling-Specific-Rules-For-a-Single-Line" class="headerlink" title="Disabling Specific Rules For a Single Line"></a>Disabling Specific Rules For a Single Line</h3><p>通过单行注释也可以进行规则：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (x) y(); // jscs:ignore requireCurlyBraces</span><br><span class="line"><span class="keyword">if</span> (z) a();</span><br></pre></td></tr></table></figure></p>
+<p>你可以在禁用规则之后在激活所有的规则。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">// jscs:<span class="built_in">disable</span> requireCurlyBraces</span><br><span class="line"><span class="keyword">if</span> (x) y(); // all errors from requireCurlyBraces on this line will be ignored</span><br><span class="line">// jscs:<span class="built_in">enable</span></span><br><span class="line"><span class="keyword">if</span> (z) a(); // all errors, even from requireCurlyBraces, will be reported</span><br></pre></td></tr></table></figure></p>
+<p>你也可以禁用多个规则后在逐步重新激活规则。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">// jscs:<span class="built_in">disable</span> requireCurlyBraces, requireDotNotation</span><br><span class="line"><span class="keyword">if</span> (x[<span class="string">'a'</span>]) y(); // all errors from requireCurlyBraces OR requireDotNotation on this line will be ignored</span><br><span class="line">// jscs:<span class="built_in">enable</span> requireCurlyBraces</span><br><span class="line"><span class="keyword">if</span> (z[<span class="string">'a'</span>]) a(); // all errors from requireDotNotation, but not requireCurlyBraces, will be ignored</span><br><span class="line">// jscs:<span class="built_in">enable</span> requireDotNotation</span><br><span class="line"><span class="keyword">if</span> (z[<span class="string">'a'</span>]) a(); // all errors will be reported</span><br></pre></td></tr></table></figure></p>
+<h3 id="Disabling-rule-checks-on-the-entire-file"><a href="#Disabling-rule-checks-on-the-entire-file" class="headerlink" title="Disabling rule checks on the entire file"></a>Disabling rule checks on the entire file</h3><p>通过在文件顶部添加注释来禁用所有的规则。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">// jscs:<span class="built_in">disable</span></span><br></pre></td></tr></table></figure></p>
+<p>As the comments are applicable only to the file they are placed in there is no requirement to put the special comment // jscs:enable at the end of the file.</p>
+<p>The same concept is applicable to disable only specific rules in the file. So instead of // jscs:disable, you can put // jscs:disable requireCurlyBraces to disable a single rule or // jscs:disable requireCurlyBraces, requireDotNotation to disable multiple rules</p>
+<h2 id="Versioning-amp-Semver"><a href="#Versioning-amp-Semver" class="headerlink" title="Versioning &amp; Semver"></a>Versioning &amp; Semver</h2><p>We recommend installing JSCS via NPM using ^, or ~ if you want more stable releases.</p>
+<p>Semver (<a href="http://semver.org/" target="_blank" rel="noopener">http://semver.org/</a>) dictates that breaking changes be major version bumps. In the context of a linting tool, a bug fix that causes more errors to be reported can be interpreted as a breaking change. However, that would require major version bumps to occur more often than can be desirable. Therefore, as a compromise, we will only release bug fixes that cause more errors to be reported in minor versions.</p>
+<p>Below you fill find our versioning strategy, and what you can expect to come out of a new JSCS release.</p>
+<ul>
+<li>Patch release:</li>
+</ul>
+<ol>
+<li>A bug fix in a rule that causes JSCS to report less errors.</li>
+<li>Docs, refactoring and other “invisible” changes for user;</li>
+</ol>
+<ul>
+<li>Minor release:</li>
+</ul>
+<ol>
+<li>Any preset changes.</li>
+<li>A bug fix in a rule that causes JSCS to report more errors.</li>
+<li>New rules or new options for existing rules that don’t change existing behavior.</li>
+<li>Modifying rules so they report less errors, and don’t cause build failures.</li>
+</ol>
+<ul>
+<li>Major release:</li>
+</ul>
+<ol>
+<li>Purposefully modifying existing rules so that they report more errors or change the meaning of a rule.</li>
+<li>Any architectural changes that could cause builds to fail.</li>
+</ol>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Node-js/" rel="tag"># Node.js</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/08/01/Redis-Commands-Strings/" rel="prev" title="Redis Commands Strings">
+                Redis Commands Strings <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/images/avatar.jpg"
+                alt="陈均" />
+            
+              <p class="site-author-name" itemprop="name">陈均</p>
+              <p class="site-description motion-element" itemprop="description">世间万物皆空。唯其空，便能包容万物。</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">28</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">11</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">11</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Overview"><span class="nav-number">1.</span> <span class="nav-text">Overview</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Presets"><span class="nav-number">2.</span> <span class="nav-text">Presets</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Friendly-packages"><span class="nav-number">3.</span> <span class="nav-text">Friendly packages</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Extensions"><span class="nav-number">4.</span> <span class="nav-text">Extensions</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Installation"><span class="nav-number">5.</span> <span class="nav-text">Installation</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Programmatic-Usage"><span class="nav-number">6.</span> <span class="nav-text">Programmatic Usage</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#CLI"><span class="nav-number">7.</span> <span class="nav-text">CLI</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#–fix-x"><span class="nav-number">7.1.</span> <span class="nav-text">–fix (-x)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#–auto-configure"><span class="nav-number">7.2.</span> <span class="nav-text">–auto-configure</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#–config-c"><span class="nav-number">7.3.</span> <span class="nav-text">–config (-c)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#–preset-p"><span class="nav-number">7.4.</span> <span class="nav-text">–preset (-p)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#–extract"><span class="nav-number">7.5.</span> <span class="nav-text">–extract</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#–reporter-r"><span class="nav-number">7.6.</span> <span class="nav-text">–reporter (-r)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#–error-filter-f"><span class="nav-number">7.7.</span> <span class="nav-text">–error-filter (-f)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#–no-colors-n"><span class="nav-number">7.8.</span> <span class="nav-text">–no-colors (-n)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#–max-errors-m"><span class="nav-number">7.9.</span> <span class="nav-text">–max-errors (-m)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#–help-h"><span class="nav-number">7.10.</span> <span class="nav-text">–help (-h)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#–version-V"><span class="nav-number">7.11.</span> <span class="nav-text">–version (-V)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Options"><span class="nav-number">8.</span> <span class="nav-text">Options</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#plugins"><span class="nav-number">8.1.</span> <span class="nav-text">plugins</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#additionalRules"><span class="nav-number">8.2.</span> <span class="nav-text">additionalRules</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#preset"><span class="nav-number">8.3.</span> <span class="nav-text">preset</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#excludeFiles"><span class="nav-number">8.4.</span> <span class="nav-text">excludeFiles</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#fileExtensions"><span class="nav-number">8.5.</span> <span class="nav-text">fileExtensions</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#extract"><span class="nav-number">8.6.</span> <span class="nav-text">extract</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#maxErrors"><span class="nav-number">9.</span> <span class="nav-text">maxErrors</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#fix"><span class="nav-number">10.</span> <span class="nav-text">fix</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#es3"><span class="nav-number">11.</span> <span class="nav-text">es3</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#errorFilter"><span class="nav-number">12.</span> <span class="nav-text">errorFilter</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Error-Suppression"><span class="nav-number">13.</span> <span class="nav-text">Error Suppression</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Disabling-a-Rule"><span class="nav-number">13.1.</span> <span class="nav-text">Disabling a Rule</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Inline-Comments"><span class="nav-number">13.2.</span> <span class="nav-text">Inline Comments</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Disabling-All-Rules"><span class="nav-number">13.3.</span> <span class="nav-text">Disabling All Rules</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Disabling-Specific-Rules"><span class="nav-number">13.4.</span> <span class="nav-text">Disabling Specific Rules</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Disabling-Specific-Rules-For-a-Single-Line"><span class="nav-number">13.5.</span> <span class="nav-text">Disabling Specific Rules For a Single Line</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Disabling-rule-checks-on-the-entire-file"><span class="nav-number">13.6.</span> <span class="nav-text">Disabling rule checks on the entire file</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Versioning-amp-Semver"><span class="nav-number">14.</span> <span class="nav-text">Versioning &amp; Semver</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">陈均</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动 v3.7.1</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Pisces</a> v6.3.0</div>
+
+
+
+  <div class="footer-custom"><a target="_blank" rel="external nofollow" href="http://www.beian.miit.gov.cn"><b>蜀ICP备17001803号</b></a></div>
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.3.0"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=6.3.0"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.3.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.3.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.3.0"></script>
+
+
+
+  
+
+  
+    <script id="dsq-count-scr" src="https://cjoop.disqus.com/count.js" async></script>
+  
+
+  
+    <script type="text/javascript">
+      var disqus_config = function () {
+        this.page.url = 'http://cjoop.top/2015/09/01/JSCS-Tutorial/';
+        this.page.identifier = '2015/09/01/JSCS-Tutorial/';
+        this.page.title = 'JSCS Tutorial';
+        };
+      function loadComments () {
+        var d = document, s = d.createElement('script');
+        s.src = 'https://cjoop.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      }
+      
+        loadComments();
+      
+    </script>
+  
+
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("X2YtjBbKwWtfKz2jH6SBGpLa-gzGzoHsz", "S6zjXgoW7l4HGNvpcJrXroPJ");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            
+            counter.save(null, {
+              success: function(counter) {
+                
+                  var $element = $(document.getElementById(url));
+                  $element.find('.leancloud-visitors-count').text(counter.get('time'));
+                
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            
+              var $element = $(document.getElementById(url));
+              $element.find('.leancloud-visitors-count').text('Counter not initialized! See more at console err msg.');
+              console.error('ATTENTION! LeanCloud counter has security bug, see here how to solve it: https://github.com/theme-next/hexo-leancloud-counter-security. \n But you also can use LeanCloud without security, by set \'security\' option to \'false\'.');
+            
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

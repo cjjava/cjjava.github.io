@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=6.3.0" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.3.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.3.0" color="#222">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '6.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="introduction基于redis的复制有一种简单的方式是通过配置master-slave就可以允许从节点去精确的复制主节点信息。从节点会自动的在任意时刻保持与主节点的连接，无论master节点做了什么，从节点都将精确的复制这些内容。这种机制工作主要由三部分组成：  当一个主节点和一个从节点实例连接后，这个主节点会发送一个流来保持与从节点的更新，以便主节点的数据集发生变化后能够通知从节点：客户">
+<meta name="keywords" content="Redis">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis Replication">
+<meta property="og:url" content="http://cjoop.top/2016/10/14/Redis-Replication/index.html">
+<meta property="og:site_name" content="永恒之道">
+<meta property="og:description" content="introduction基于redis的复制有一种简单的方式是通过配置master-slave就可以允许从节点去精确的复制主节点信息。从节点会自动的在任意时刻保持与主节点的连接，无论master节点做了什么，从节点都将精确的复制这些内容。这种机制工作主要由三部分组成：  当一个主节点和一个从节点实例连接后，这个主节点会发送一个流来保持与从节点的更新，以便主节点的数据集发生变化后能够通知从节点：客户">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2018-06-23T08:04:07.897Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Redis Replication">
+<meta name="twitter:description" content="introduction基于redis的复制有一种简单的方式是通过配置master-slave就可以允许从节点去精确的复制主节点信息。从节点会自动的在任意时刻保持与主节点的连接，无论master节点做了什么，从节点都将精确的复制这些内容。这种机制工作主要由三部分组成：  当一个主节点和一个从节点实例连接后，这个主节点会发送一个流来保持与从节点的更新，以便主节点的数据集发生变化后能够通知从节点：客户">
+
+
+
+
+
+
+  <link rel="canonical" href="http://cjoop.top/2016/10/14/Redis-Replication/"/>
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Redis Replication | 永恒之道</title>
+  
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">永恒之道</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br />首页</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+    <a href="/tags/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />标签</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+    <a href="/categories/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-th"></i> <br />分类</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />归档</a>
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://cjoop.top/2016/10/14/Redis-Replication/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="陈均">
+      <meta itemprop="description" content="世间万物皆空。唯其空，便能包容万物。">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="永恒之道">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Redis Replication
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2016-10-14 20:37:26" itemprop="dateCreated datePublished" datetime="2016-10-14T20:37:26+08:00">2016-10-14</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2018-06-23 16:04:07" itemprop="dateModified" datetime="2018-06-23T16:04:07+08:00">2018-06-23</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2016/10/14/Redis-Replication/#comments" itemprop="discussionUrl">
+                
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2016/10/14/Redis-Replication/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/2016/10/14/Redis-Replication/" class="leancloud_visitors" data-flag-title="Redis Replication">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数：</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="introduction"><a href="#introduction" class="headerlink" title="introduction"></a>introduction</h2><p>基于redis的复制有一种简单的方式是通过配置master-slave就可以允许从节点去精确的复制主节点信息。从节点会自动的在任意时刻保持与主节点的连接，无论master节点做了什么，从节点都将精确的复制这些内容。<br>这种机制工作主要由三部分组成：</p>
+<ol>
+<li>当一个主节点和一个从节点实例连接后，这个主节点会发送一个流来保持与从节点的更新，以便主节点的数据集发生变化后能够通知从节点：客户端的写，keys的过期或者剔除，等等。</li>
+<li>当主节点和从节点断开了，可能是网络问题或者是超时了，从节点会重试连接并且尝试一部分重新同步：意味着会尝试丢失过后的那部分内容。</li>
+<li>当重新同步内容也失败了，从节点将重新同步完整的内容。这将涉及到更复杂的处理过程，主程序需要创建一个完整的数据快照，在发送给从节点，最后在继续发送命令流作为数据集的交换。</li>
+</ol>
+<p>Redis默认采用的是异步复制方式，具有高性能和高延迟，在绝大多数情况下复制都是很自然的。只是Redis从节点是定期的去异步接收这个主节点的数据。</p>
+<p>客户端可以使用<a href="https://redis.io/commands/wait" target="_blank" rel="noopener">WAIT</a>命令来作为某些数据请求时的同步复制。但是WAIT只能确保其他实例对你指定的数据进行确认复制：</p>
+<p>因为某些错误而进行故障转移期间或者配置了Redis持久化的情况下确认写操作也会丢失数据。 你可以查阅Sentinel或者Redis集群文档来获取更多关于高可用和故障转移的信息。该文档的其余部门描述了Redis的基本复制功能。<br>以下是关于Redis复制的重要流程说明：</p>
+<ul>
+<li>Redis使用的是异步复制，基于异步方式来确认slave-to-master的数据处理。</li>
+<li>一个主节点可以有多个从节点。</li>
+<li>从节点也可以接受其他从节点的连接。除了可以接受同一个master下面slaves的连接以外，还可以接受同一个结构图中的其他slaves的连接。从4.0版本开始，所有的从节点将从同一个主节点接收相同的复制流。</li>
+<li>Redis复制在master端是非阻塞的。也就是说这个主节点在从节点同步的过程中会继续接受查询操作。</li>
+<li>在从节点端的复制基本上也是非阻塞的。当从节点在执行初始化同步的时候，它能够使用旧版本的数据集提供查询处理，假设你在redis.conf配置里这样做了。 否则，你可以配置Redis当你的复制流被关闭后从节点返回一个错误给客户端。但是，在初始化同步执行以后，这个旧的数据集必须被删除并且新的数据必须被加载。在这个简短的过程中从节点将会阻止传进来的连接（如果数据集非常大的话可能需要很多秒）。4.0版本会提供一个不同的线程来删除旧的数据，但是加载新的数据集任然在主线程中处理，并且被阻止连接。</li>
+<li>复制具有伸缩性，可以有多个从节点作为只读查询（比如慢的操作可以交给从节点），或者为了数据的安全。</li>
+<li>可以使用复制来避免主节点将完整的数据集写入到磁盘：一种典型的技术就是配置主节点的redis.conf来避免所有数据持久化到磁盘，然后将连接的从节点配置为时不时的去保存，或者激活AOF。但是这种设置必须要小心，因为重新启动主节点后将会以空数据集运行：如果从节点尝试去同步它，这个从节点也将会成为空。</li>
+</ul>
+<h2 id="Safety-of-replication-when-master-has-persistence-turned-off"><a href="#Safety-of-replication-when-master-has-persistence-turned-off" class="headerlink" title="Safety of replication when master has persistence turned off"></a>Safety of replication when master has persistence turned off</h2><p>在设置Redis复制的时候，强烈建议在主节点和从节点上打开持久化功能。如果确实不想持久化的话，比如因为磁盘读写性能的原因，实例也要避免重启系统后自动重启服务。</p>
+<p>为了更好的理解为什么主节点在持久化关闭后配置了自动重启是很危险的，按照以下流程来测试数据被擦除的故障模式：</p>
+<ol>
+<li>我们设置了一个节点A作为主节点，关闭了持久化，并且节点B和C复制节点A.</li>
+<li>节点A崩溃了，系统在某个时候自动重启了，也重启了这个进程。<br>由于持久化被关闭了，这个节点会以空数据集重新启动。</li>
+<li>节点B和C将复制节点A的内容，因为是空的，所以他们的副本数据也被摧毁了。<br>当使用Redis Sentinel作为高可用方案是，也在主节点上关闭了持久化，自动重启了进程，也是很危险的。比如主节点很快的重启Sentinel没有检测到这个故障，所以上面的失败模式也会发生。</li>
+</ol>
+<p>任何时刻的数据都很重要，如果主节点配置在复制的时候没有持久化，自动重启应该被禁止掉。</p>
+<h2 id="How-Redis-replication-works"><a href="#How-Redis-replication-works" class="headerlink" title="How Redis replication works"></a>How Redis replication works</h2><p>每个Redis主节点都有一个复制ID：它是一个大的随机数来标记这个数据集。每个主节点还需要一个偏移量，来更新数据集的状态到哪儿了。<br>即使没有从节点连接这个复制的偏移量也会增加，所以都是成对出现：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Replication ID, offset</span><br></pre></td></tr></table></figure></p>
+<p>精确的标志主节点的数据集版本。<br>当从节点连接到主节点后，他们会使用PSYNC命令发送他们旧的主节点复制ID和对应的已经处理的偏移量。这种方式主节点就能够只发送需要新增的部分。但是如果缓冲区没有足够的积压或者从节点提供的ID已经不可知了，那么完整的同步就会发生：在这种情况下从节点会从零开始复制数据集。<br>下面是一个完全同步工作的详细内容：<br>主节点会开始一个后台保存的进程去生产一个RDB文件。同事它会把从客户端所有接收的写命令保存到缓冲区。当后台保存完成后，这个主节点会把这个数据库文件发送给从节点，从节点将保存到磁盘上，并且将它们加载到内存里面。这个主节点在把发送到缓冲区的所有命令发送给从节点。这是通过流命令和Redis协议本身来处理的。<br>你可以尝试使用telnet来访问。连接这个Redis服务，输入SYNC命令来处理工作。你将会看到大量的转移信息和每个命令接收的情况。实际上SYNC是一个不在使用的旧协议，但是仍然是像后兼容的：它不允许部分重新同步，所以使用PSYNC来代替使用。<br>正如前面所说的，从节点能够在某些原因下自动重新连接主节点。如果主节点接收到了多个从节点的同步请求，它会执行一个单独的保存操作提供给所有的节点服务。</p>
+<h2 id="Diskless-replication"><a href="#Diskless-replication" class="headerlink" title="Diskless replication"></a>Diskless replication</h2><p>通常一个完整的重新同步会创建一个RDB文件到磁盘，然后在从磁盘加载相同的RDB给所有的从节点。<br>因为磁盘的读写问题使得主节点有很大的压力。在Redis2.8.18版本开始支持无盘复制。直接通过子进程将RDB发送给其他的从节点，不需要磁盘作为中间存储。</p>
+<h2 id="Configuration"><a href="#Configuration" class="headerlink" title="Configuration"></a>Configuration</h2><p>配置Redis的复制是很简单的事情：只需要执行下面的流程：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">slaveof 192.168.1.1 6379</span><br></pre></td></tr></table></figure></p>
+<p>当然你需要替换掉192.168.1.1 6379为你的主节点IP地址（或者主机名）和端口。通过调用<a href="https://redis.io/commands/slaveof" target="_blank" rel="noopener">SLAVEOF</a>命令来让主节点开始同步。<br>还有一些参数作为主节点在内存中执行部分重新同步的优化。可以查看例子文件redis.conf获取更多信息。<br>无盘复制通过激活repl-diskless-sync参数。通过延长启动来等待更多的从节点参与，是通过 repl-diskless-sync-delay参数控制。请参考例子文件redis.conf获取更多信息。</p>
+<h2 id="Read-only-slave"><a href="#Read-only-slave" class="headerlink" title="Read-only slave"></a>Read-only slave</h2><p>从Redis2.6版本开始，从节点支持只读模式，默认是被激活的。这个行为的控制在redis.conf文件里通过slave-read-only来控制，能够在运行环境使用 <a href="https://redis.io/commands/config-set" target="_blank" rel="noopener">CONFIG SET</a>来激活或者禁用。<br>Read-only 从节点将拒绝接受所有的写命令，因此给从节点写内容会产生错误。这并不意味着就可以将这些从节点暴露在外网或者客户端使用，因为一些调试命令比如DEBUG或者CONFIG都是被激活的。但是，可以通过使用rename-command指令来达到禁用命令从而保证安全。</p>
+<p>You may wonder why it is possible to revert the read-only setting and have slave instances that can be targeted by write operations. While those writes will be discarded if the slave and the master resynchronize or if the slave is restarted, there are a few legitimate use case for storing ephemeral data in writable slaves.<br>For example computing slow Set or Sorted set operations and storing them into local keys is an use case for writable slaves that was observed multiple times.<br>However note that writable slaves before version 4.0 were incapable of expiring keys with a time to live set. This means that if you use EXPIRE or other commands that set a maximum TTL for a key, the key will leak, and while you may no longer see it while accessing it with read commands, you will see it in the count of keys and it will still use memory. So in general mixing writable slaves (previous version 4.0) and keys with TTL is going to create issues.<br>Redis 4.0 RC3 and greater versions totally solve this problem and now writable slaves are able to evict keys with TTL as masters do, with the exceptions of keys written in DB numbers greater than 63 (but by default Redis instances only have 16 databases).<br>所以在Redis4.0版本以后写只能在本地操作，并且不会传播给其他的子从节点。子从节点只会接收来自顶层主节点的复制流信息。例如下面的流程：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">A ---&gt; B ---&gt; C</span><br></pre></td></tr></table></figure></p>
+<p>即使B可写，C也不会看到B写的内容并且将具有与主节点A相同的数据集。</p>
+<h2 id="Setting-a-slave-to-authenticate-to-a-master"><a href="#Setting-a-slave-to-authenticate-to-a-master" class="headerlink" title="Setting a slave to authenticate to a master"></a>Setting a slave to authenticate to a master</h2><p>如果你的主节点需要通过密码才可以访问，配置从节点使用密码来进行同步操作是很容易的。<br>使用redis-cli在运行的实例上面这样做：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">config <span class="built_in">set</span> masterauth &lt;password&gt;</span><br></pre></td></tr></table></figure></p>
+<p>可以把它永久的写到配置文件里面：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">masterauth &lt;password&gt;</span><br></pre></td></tr></table></figure></p>
+<h2 id="Allow-writes-only-with-N-attached-replicas"><a href="#Allow-writes-only-with-N-attached-replicas" class="headerlink" title="Allow writes only with N attached replicas"></a>Allow writes only with N attached replicas</h2><p>从Redis2.8版本开始，可以配置一个Redis主节点在至少有N个从节点连接到当前主节点的情况下才允许写操作。<br>但是，因为Redis使用的是异步复制它不保证从节点实际接收到写，所以这种方式总是有可能丢失数据。<br>这是工作的过程：</p>
+<ul>
+<li>Redis 从节点会每秒去ping主节点，来确认复制流进程。</li>
+<li>Redis 主节点会记住最后一次接收到的ping信息。</li>
+<li>用户可以配置一个最小数量的从节点，或者最大延迟的秒数<br>如果配置至少为N个从节点，滞后小于M秒，这时候写将会被允许。<br>可以认为是一种尽量保证数据安全的机制。这种情况下，对于给定的数据不能保证一致性，但至少限定在了给定的秒内。<br>如果条件不符合，主节点将会返回错误，而写入不会被接受。<br>该功能有两个配置参数：</li>
+<li>min-slaves-to-write <number of="" slaves=""></number></li>
+<li>min-slaves-max-lag <number of="" seconds=""><br>更多的信息，请查看例子redis.conf文件。</number></li>
+</ul>
+<h2 id="How-Redis-replication-deals-with-expires-on-keys"><a href="#How-Redis-replication-deals-with-expires-on-keys" class="headerlink" title="How Redis replication deals with expires on keys"></a>How Redis replication deals with expires on keys</h2><p>Redis expires allow keys to have a limited time to live. Such a feature depends on the ability of an instance to count the time, however Redis slaves correctly replicate keys with expires, even when such keys are altered using Lua scripts.</p>
+<p>To implement such a feature Redis cannot rely on the ability of the master and slave to have synchronized clocks, since this is a problem that cannot be solved and would result into race conditions and diverging data sets, Redis使用三种主要的技术复制要过期的key来确保工作:</p>
+<ol>
+<li>从节点不会去过期一个key，实例会等待主节点去过期这个key。当主节点过期一个key（或者因为LRU被剔除），它将给所有的从节点发送一个<a href="https://redis.io/commands/del" target="_blank" rel="noopener">DEL</a>命令。</li>
+<li>因为这个是主节点驱动过期，某些从节点可以在内存里面还是会存在过期的key，因为在这个时间段主节点还没有提供<a href="https://redis.io/commands/del" target="_blank" rel="noopener">DEL</a>命令。处理这个问题，从节点会采用自己的时钟报告这个键不存在。这样就避免了key值过期的情况。实际上，一个缓存片段也能够避免超过时间的项。</li>
+<li>During Lua scripts executions no keys expires are performed. As a Lua script runs, conceptually the time in the master is frozen, so that a given key will either exist or not for all the time the script runs. This prevents keys to expire in the middle of a script, and is needed in order to send the same script to the slave in a way that is guaranteed to have the same effects in the data set.</li>
+</ol>
+<p>一旦从节点被提升为了主节点它将独立运行这些keys，并且不需要旧的主节点的任何帮助。</p>
+<h2 id="Configuring-replication-in-Docker-and-NAT"><a href="#Configuring-replication-in-Docker-and-NAT" class="headerlink" title="Configuring replication in Docker and NAT"></a>Configuring replication in Docker and NAT</h2><p>使用Docker,或者其他类型容器的端口映射，或者使用网络地址转换，Redis复制需要一些额外的配置，尤其是使用了Redis Sentinel或者其他系统对主节点 INFO 或者 ROLE命令的输出进行了扫描来发现从节点地址信息。<br>问题是这个ROLE命令，复制的输出信息里面的IP地址可能会因为使用了NAT后与逻辑地址不相同。<br>同样会因为端口映射而导致和redis.conf里面的配置不同。<br>为了解决上面的两个问题，在Redis3.2.2版本里面通过强制指定ip和端口来解决，这两个配置指令如下：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">slave-announce-ip 5.5.5.5</span><br><span class="line">slave-announce-port 1234</span><br></pre></td></tr></table></figure></p>
+<p>And are documented in the example redis.conf of recent Redis distributions.</p>
+<h2 id="The-INFO-and-ROLE-command"><a href="#The-INFO-and-ROLE-command" class="headerlink" title="The INFO and ROLE command"></a>The INFO and ROLE command</h2><p>这两个Redis命令提供了一些关于当前复制参数的信息。<br> One is INFO. If the command is called with the replication argument as INFO replication only information relevant to the replication are displayed. Another more computer-friendly command is ROLE, that provides the replication status of masters and slaves together with their replication offsets, list of connected slaves and so forth.</p>
+<h2 id="Partial-resynchronizations-after-restarts-and-failovers"><a href="#Partial-resynchronizations-after-restarts-and-failovers" class="headerlink" title="Partial resynchronizations after restarts and failovers"></a>Partial resynchronizations after restarts and failovers</h2><p>在Redis4.0版本中，当一个实例被提升为主节点之后，它将继续与旧的主节点进行部分内容的同步。所以，从节点会记住旧的复制ID和偏移量。所以通过就的复制ID能够提供积压的信息，这样降低了对数据丢失的概率.</p>
+<p>However the new replication ID of the promoted slave will be different, since it constitutes a different history of the data set. For example, the master can return available and can continue accepting writes for some time, so using the same replication ID in the promoted slave would violate the rule that a of replication ID and offset pair identifies only a single data set.</p>
+<p>Moreover slaves when powered off gently and restarted, are able to store in the RDB file the information needed in order to resynchronize with their master. This is useful in case of upgrades. When this is needed, it is better to use the SHUTDOWN command in order to perform a save &amp; quit operation on the slave.</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Redis/" rel="tag"># Redis</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/10/11/Redis-Quick-Start/" rel="next" title="Redis Quick Start">
+                <i class="fa fa-chevron-left"></i> Redis Quick Start
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/10/15/Redis-Replication-Keepalived/" rel="prev" title="Redis Replication+Keepalived">
+                Redis Replication+Keepalived <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/images/avatar.jpg"
+                alt="陈均" />
+            
+              <p class="site-author-name" itemprop="name">陈均</p>
+              <p class="site-description motion-element" itemprop="description">世间万物皆空。唯其空，便能包容万物。</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">28</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">11</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">11</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#introduction"><span class="nav-number">1.</span> <span class="nav-text">introduction</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Safety-of-replication-when-master-has-persistence-turned-off"><span class="nav-number">2.</span> <span class="nav-text">Safety of replication when master has persistence turned off</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#How-Redis-replication-works"><span class="nav-number">3.</span> <span class="nav-text">How Redis replication works</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Diskless-replication"><span class="nav-number">4.</span> <span class="nav-text">Diskless replication</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Configuration"><span class="nav-number">5.</span> <span class="nav-text">Configuration</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Read-only-slave"><span class="nav-number">6.</span> <span class="nav-text">Read-only slave</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Setting-a-slave-to-authenticate-to-a-master"><span class="nav-number">7.</span> <span class="nav-text">Setting a slave to authenticate to a master</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Allow-writes-only-with-N-attached-replicas"><span class="nav-number">8.</span> <span class="nav-text">Allow writes only with N attached replicas</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#How-Redis-replication-deals-with-expires-on-keys"><span class="nav-number">9.</span> <span class="nav-text">How Redis replication deals with expires on keys</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Configuring-replication-in-Docker-and-NAT"><span class="nav-number">10.</span> <span class="nav-text">Configuring replication in Docker and NAT</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#The-INFO-and-ROLE-command"><span class="nav-number">11.</span> <span class="nav-text">The INFO and ROLE command</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Partial-resynchronizations-after-restarts-and-failovers"><span class="nav-number">12.</span> <span class="nav-text">Partial resynchronizations after restarts and failovers</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">陈均</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动 v3.7.1</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Pisces</a> v6.3.0</div>
+
+
+
+  <div class="footer-custom"><a target="_blank" rel="external nofollow" href="http://www.beian.miit.gov.cn"><b>蜀ICP备17001803号</b></a></div>
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.3.0"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=6.3.0"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.3.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.3.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.3.0"></script>
+
+
+
+  
+
+  
+    <script id="dsq-count-scr" src="https://cjoop.disqus.com/count.js" async></script>
+  
+
+  
+    <script type="text/javascript">
+      var disqus_config = function () {
+        this.page.url = 'http://cjoop.top/2016/10/14/Redis-Replication/';
+        this.page.identifier = '2016/10/14/Redis-Replication/';
+        this.page.title = 'Redis Replication';
+        };
+      function loadComments () {
+        var d = document, s = d.createElement('script');
+        s.src = 'https://cjoop.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      }
+      
+        loadComments();
+      
+    </script>
+  
+
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("X2YtjBbKwWtfKz2jH6SBGpLa-gzGzoHsz", "S6zjXgoW7l4HGNvpcJrXroPJ");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            
+            counter.save(null, {
+              success: function(counter) {
+                
+                  var $element = $(document.getElementById(url));
+                  $element.find('.leancloud-visitors-count').text(counter.get('time'));
+                
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            
+              var $element = $(document.getElementById(url));
+              $element.find('.leancloud-visitors-count').text('Counter not initialized! See more at console err msg.');
+              console.error('ATTENTION! LeanCloud counter has security bug, see here how to solve it: https://github.com/theme-next/hexo-leancloud-counter-security. \n But you also can use LeanCloud without security, by set \'security\' option to \'false\'.');
+            
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

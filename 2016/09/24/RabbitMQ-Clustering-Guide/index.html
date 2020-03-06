@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=6.3.0" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.3.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.3.0" color="#222">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '6.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="概述一个RabbitMQ服务作为一个逻辑组或者几个Erlang节点，所有运行的Rabbitmq应用程序共享用户信息，虚拟主机，队列，交换器，绑定信息，运行参数。我们把引用的节点集合作为一个集群。 什么是复制?对于在RabbitMQ服务中操作的所有数据和状态信息在所有的节点中都被复制，具有可靠性和伸缩性，满足ACID要求。但是存在一个例外是针对 message queue的，其默认是仅存在于创建它的">
+<meta name="keywords" content="RabbitMQ">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RabbitMQ Clustering Guide">
+<meta property="og:url" content="http://cjoop.top/2016/09/24/RabbitMQ-Clustering-Guide/index.html">
+<meta property="og:site_name" content="永恒之道">
+<meta property="og:description" content="概述一个RabbitMQ服务作为一个逻辑组或者几个Erlang节点，所有运行的Rabbitmq应用程序共享用户信息，虚拟主机，队列，交换器，绑定信息，运行参数。我们把引用的节点集合作为一个集群。 什么是复制?对于在RabbitMQ服务中操作的所有数据和状态信息在所有的节点中都被复制，具有可靠性和伸缩性，满足ACID要求。但是存在一个例外是针对 message queue的，其默认是仅存在于创建它的">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2018-06-23T08:04:07.882Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="RabbitMQ Clustering Guide">
+<meta name="twitter:description" content="概述一个RabbitMQ服务作为一个逻辑组或者几个Erlang节点，所有运行的Rabbitmq应用程序共享用户信息，虚拟主机，队列，交换器，绑定信息，运行参数。我们把引用的节点集合作为一个集群。 什么是复制?对于在RabbitMQ服务中操作的所有数据和状态信息在所有的节点中都被复制，具有可靠性和伸缩性，满足ACID要求。但是存在一个例外是针对 message queue的，其默认是仅存在于创建它的">
+
+
+
+
+
+
+  <link rel="canonical" href="http://cjoop.top/2016/09/24/RabbitMQ-Clustering-Guide/"/>
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>RabbitMQ Clustering Guide | 永恒之道</title>
+  
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">永恒之道</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br />首页</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+    <a href="/tags/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />标签</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+    <a href="/categories/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-th"></i> <br />分类</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />归档</a>
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://cjoop.top/2016/09/24/RabbitMQ-Clustering-Guide/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="陈均">
+      <meta itemprop="description" content="世间万物皆空。唯其空，便能包容万物。">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="永恒之道">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">RabbitMQ Clustering Guide
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2016-09-24 22:37:26" itemprop="dateCreated datePublished" datetime="2016-09-24T22:37:26+08:00">2016-09-24</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2018-06-23 16:04:07" itemprop="dateModified" datetime="2018-06-23T16:04:07+08:00">2018-06-23</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/RabbitMQ/" itemprop="url" rel="index"><span itemprop="name">RabbitMQ</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2016/09/24/RabbitMQ-Clustering-Guide/#comments" itemprop="discussionUrl">
+                
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2016/09/24/RabbitMQ-Clustering-Guide/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/2016/09/24/RabbitMQ-Clustering-Guide/" class="leancloud_visitors" data-flag-title="RabbitMQ Clustering Guide">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数：</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>一个RabbitMQ服务作为一个逻辑组或者几个Erlang节点，所有运行的Rabbitmq应用程序共享用户信息，虚拟主机，队列，交换器，绑定信息，运行参数。我们把引用的节点集合作为一个集群。</p>
+<h2 id="什么是复制"><a href="#什么是复制" class="headerlink" title="什么是复制?"></a>什么是复制?</h2><p>对于在RabbitMQ服务中操作的所有数据和状态信息在所有的节点中都被复制，具有可靠性和伸缩性，满足ACID要求。但是存在一个例外是针对 message queue的，其默认是仅存在于创建它的那个 node 上面，尽管其同时对于所有其他 node 是可见和可达的。为了在 cluster 中的所有 node 上复制某个 queue 的内容，参考 <a href="https://www.rabbitmq.com/ha.html" target="_blank" rel="noopener">high availability</a> 相关文档（首先你可能需要一个可用的集群环境） 。</p>
+<h2 id="主机名解析要求"><a href="#主机名解析要求" class="headerlink" title="主机名解析要求"></a>主机名解析要求</h2><p>RabbitMQ的节点地址信息使用的是域名，短的或者完整的有效域名。因此集群中的所有成员都必须能够解析来自集群中节点的主机名信息，这样才能够在任何一台机子上使用命令行工具rabbitmqctl。</p>
+<p>主机名解析可以使用任何一种标准的方式：</p>
+<ol>
+<li>DNS records</li>
+<li>Local host files (e.g. /etc/hosts)</li>
+</ol>
+<p>In more restrictive environments, where DNS record or hosts file modification is restricted, impossible or undesired, Erlang VM can be configured to use alternative hostname resolution methods, such as an alternative DNS server, a local file, a non-standard hosts file location, or a mix of methods. Those methods can work in concert with the standard OS hostname resolution methods.</p>
+<p>使用FQDN的话，在<a href="http://www.rabbitmq.com/configure.html#define-environment-variables" target="_blank" rel="noopener">配置指南</a>中查看RABBITMQ_USE_LONGNAME属性。</p>
+<h2 id="集群构成"><a href="#集群构成" class="headerlink" title="集群构成"></a>集群构成</h2><p>集群可以通过以下的任何一种方式进行构成：</p>
+<ol>
+<li>通过rabbitmqctl手动操作(比如在开发环境中)</li>
+<li>在<a href="http://www.rabbitmq.com/configure.html" target="_blank" rel="noopener">配置文件</a>中声明集群节点列表</li>
+<li>使用<a href="https://github.com/aweber/rabbitmq-autocluster/" target="_blank" rel="noopener">rabbitmq-autocluster</a>方式 (一个插件)</li>
+</ol>
+<p>集群的组成可以动态的改变。所有 RabbitMQ broker 在最初启动时都是从单独的一个节点开始的。 这些 node 可以加入到同一个 cluster 中，之后还可以重新退回成单个节点运行。</p>
+<h2 id="故障处理"><a href="#故障处理" class="headerlink" title="故障处理"></a>故障处理</h2><p>RabbitMQ服务允许容忍单个节点的失效。节点可以随时启动和停止，只要他们可以在停止的时候通知一个已知的群集成员节点。</p>
+<p> RabbitMQ有几种方式去处理网络分区问题，主要面向一致性。集群环境主要被使用在LAN(局域网)环境。不建议在WAN(广域网)环境下运行集群环境。通过使用<a href="https://www.rabbitmq.com/shovel.html" target="_blank" rel="noopener">Shovel</a>或者<a href="https://www.rabbitmq.com/federation.html" target="_blank" rel="noopener">Federation</a>插件可以很好的在WAN环境中连接服务。Note that <a href="https://www.rabbitmq.com/distributed.html" target="_blank" rel="noopener">Shovel and Federation are not equivalent to clustering</a>.</p>
+<h2 id="磁盘和内存节点"><a href="#磁盘和内存节点" class="headerlink" title="磁盘和内存节点"></a>磁盘和内存节点</h2><p>一个节点可以是一个磁盘节点或者一个内存节点。（备注：磁盘之间可以进行相互转换）。在大多数情况下你希望你的所有节点都是磁盘节点；内存节点是在特殊情况下为了提升集群中队列，交换器，绑定等性能使用的，如果你有疑问的话，可以只使用磁盘节点。</p>
+<h2 id="集群操作示范"><a href="#集群操作示范" class="headerlink" title="集群操作示范"></a>集群操作示范</h2><p>下面是一份建立和操控 RabbitMQ cluster 的示范。其中包括 3 台机器 - rabbit1，rabbit2，rabbit3.</p>
+<p>我们假设用户能够登陆到这三台机器上，RabbitMQ也已经安装在机器上了，并且rabbitmq-server和rabbitmqctl脚本命令在用户的PATH环境变量中配置好了。</p>
+<p>这个示例可以被修改来在单个主机上运行，详细的细节在后面说明。</p>
+<h2 id="节点-和CLI工具-怎么认证其他节点-使用ErlangCookie方式"><a href="#节点-和CLI工具-怎么认证其他节点-使用ErlangCookie方式" class="headerlink" title="节点(和CLI工具)怎么认证其他节点: 使用ErlangCookie方式"></a>节点(和CLI工具)怎么认证其他节点: 使用ErlangCookie方式</h2><p>RabbitMQ节点和CLI工具(比如：rabbitmqctl)使用cookie值来确定 node 间是否允许相互通信，两个 node 能够相互通信的前提是他们必须拥有相同的 Erlang cookie值。 这个cookie是一个字母数字组成的字符串。它的长度可以是长的或者短的。<br>每个集群节点必须具有相同的cookie。</p>
+<p>在RabbitMQ服务启动的时候Erlang虚拟机会自动的创建一个随机的cookie文件。并且把它复制到集群环境里的所有其他节点中。</p>
+<p>在Unix系统中,这个cookie文件通常位于 /var/lib/rabbitmq/.erlang.cookie 或者 $HOME/.erlang.cookie.</p>
+<p>在Windows系统中,这个文件路径在 C:\Users\Current User.erlang.cookie (%HOMEDRIVE% + %HOMEPATH%.erlang.cookie) 或者 C:\Documents and Settings\Current User.erlang.cookie, and C:\Windows.erlang.cookie for RabbitMQ Windows service. 如果windows服务启动了，那么cookie应该在两个地方都有。</p>
+<p>另一种方法, 你可以使用在脚本命令 rabbitmq-server 和 rabbitmqctl 中使用选项 “ -setcookie cookie” 来设置cookie.</p>
+<p>当cookie配置错误 (例如，不完全相同), RabbitMQ 会记录错误的日志信息像这样 “Connection attempt from disallowed node” and “Could not auto-cluster”.</p>
+<h2 id="启动独立节点"><a href="#启动独立节点" class="headerlink" title="启动独立节点"></a>启动独立节点</h2><p>要想建立一个 Cluster ，你就必须对每一个已经存在的 RabbitMQ node 按照 cluster 配置的方式重新进行配置。所以第一步要做的就是在每一个 node 上都常规启动 RabbitMQ 服务:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">rabbit1$ rabbitmq-server -detached</span><br><span class="line">rabbit2$ rabbitmq-server -detached</span><br><span class="line">rabbit3$ rabbitmq-server -detached</span><br></pre></td></tr></table></figure></p>
+<p>这样就创建了 3 个独立的 RabbitMQ broker ，在每一个 node 上面，可以通过 cluster_status 命令来确认:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">rabbit1$ rabbitmqctl cluster_status</span><br><span class="line">Cluster status of node rabbit@rabbit1 ...</span><br><span class="line">[&#123;nodes,[&#123;disc,[rabbit@rabbit1]&#125;]&#125;,&#123;running_nodes,[rabbit@rabbit1]&#125;]</span><br><span class="line">...done.</span><br><span class="line">rabbit2$ rabbitmqctl cluster_status</span><br><span class="line">Cluster status of node rabbit@rabbit2 ...</span><br><span class="line">[&#123;nodes,[&#123;disc,[rabbit@rabbit2]&#125;]&#125;,&#123;running_nodes,[rabbit@rabbit2]&#125;]</span><br><span class="line">...done.</span><br><span class="line">rabbit3$ rabbitmqctl cluster_status</span><br><span class="line">Cluster status of node rabbit@rabbit3 ...</span><br><span class="line">[&#123;nodes,[&#123;disc,[rabbit@rabbit3]&#125;]&#125;,&#123;running_nodes,[rabbit@rabbit3]&#125;]</span><br><span class="line">...done.</span><br></pre></td></tr></table></figure></p>
+<p>通过 rabbitmq-server 脚本命令创建的 RabbitMQ broker 对应的 node 的名字是 rabbit@shorthostname 样式，其中 short node 名字在 Linux 下是小写字母形式（如 rabbit@rabbit1）。如果您是在 Windows 上使用 rabbitmq-server.bat 批处理来执行的上述命令，short node 名字会是大写字母形式（如 rabbit@RABBIT1）。所以， 当你要使用 node 名字时，要注意大小写的问题，因为匹配时要求完全一致。</p>
+<h2 id="创建集群"><a href="#创建集群" class="headerlink" title="创建集群"></a>创建集群</h2><p>为了将我们创建的 3 个 node 连接成一个 cluster ，需要将其中两个 node（rabbit@rabbit2 和 rabbit@rabbit3）加入到第三个 node（ rabbit@rabbit1）。 </p>
+<p>我们首先把rabbit@rabbit2加入到rabbit@rabbit1集群环境中。停止rabbit@rabbit2机器的RabbitMQ应用并且加入到rabbit@rabbit1集群中，然后重启RabbitMQ应用。注意：加入 cluster 的过程隐式包含了重置 node 的动作，即移除了当前 node 上之前存放的所的资源和数据。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">rabbit2$ rabbitmqctl stop_app</span><br><span class="line">Stopping node rabbit@rabbit2 ...done.</span><br><span class="line">rabbit2$ rabbitmqctl join_cluster rabbit@rabbit1</span><br><span class="line">Clustering node rabbit@rabbit2 with [rabbit@rabbit1] ...done.</span><br><span class="line">rabbit2$ rabbitmqctl start_app</span><br><span class="line">Starting node rabbit@rabbit2 ...done.</span><br></pre></td></tr></table></figure></p>
+<p>我们可以从 rabbit@rabbit1 或者 rabbit@rabbit2 上通过命令 cluster_status 看到两个 node 已经加入到同一个 cluster 中了：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">rabbit1$ rabbitmqctl cluster_status</span><br><span class="line">Cluster status of node rabbit@rabbit1 ...</span><br><span class="line">[&#123;nodes,[&#123;disc,[rabbit@rabbit1,rabbit@rabbit2]&#125;]&#125;,</span><br><span class="line"> &#123;running_nodes,[rabbit@rabbit2,rabbit@rabbit1]&#125;]</span><br><span class="line">...done.</span><br><span class="line">rabbit2$ rabbitmqctl cluster_status</span><br><span class="line">Cluster status of node rabbit@rabbit2 ...</span><br><span class="line">[&#123;nodes,[&#123;disc,[rabbit@rabbit1,rabbit@rabbit2]&#125;]&#125;,</span><br><span class="line"> &#123;running_nodes,[rabbit@rabbit1,rabbit@rabbit2]&#125;]</span><br><span class="line">...done.</span><br></pre></td></tr></table></figure></p>
+<p>现在我们把rabbit@rabbit3加入到相同的集群环境中，步骤和上面的相同。这次我们将加入 rabbit2 所在的 cluster （其实也是 rabbit1 所在的 cluster）以证明在这种情况下通过哪一个 node 加入 cluster 都是一样的。即只要我们提供了处于某个 cluster 中的可被其他人访问的 node ，那么该 node 所在的 cluster 就可以被其他 node 加入。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">rabbit3$ rabbitmqctl stop_app</span><br><span class="line">Stopping node rabbit@rabbit3 ...done.</span><br><span class="line">rabbit3$ rabbitmqctl join_cluster rabbit@rabbit2</span><br><span class="line">Clustering node rabbit@rabbit3 with rabbit@rabbit2 ...done.</span><br><span class="line">rabbit3$ rabbitmqctl start_app</span><br><span class="line">Starting node rabbit@rabbit3 ...done.</span><br></pre></td></tr></table></figure></p>
+<p>我们可以从任意一个 node 上通过命令 cluster_status 看到三个 node 已经加入到同一个 cluster 中了：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">rabbit1$ rabbitmqctl cluster_status</span><br><span class="line">Cluster status of node rabbit@rabbit1 ...</span><br><span class="line">[&#123;nodes,[&#123;disc,[rabbit@rabbit1,rabbit@rabbit2,rabbit@rabbit3]&#125;]&#125;,</span><br><span class="line"> &#123;running_nodes,[rabbit@rabbit3,rabbit@rabbit2,rabbit@rabbit1]&#125;]</span><br><span class="line">...done.</span><br><span class="line">rabbit2$ rabbitmqctl cluster_status</span><br><span class="line">Cluster status of node rabbit@rabbit2 ...</span><br><span class="line">[&#123;nodes,[&#123;disc,[rabbit@rabbit1,rabbit@rabbit2,rabbit@rabbit3]&#125;]&#125;,</span><br><span class="line"> &#123;running_nodes,[rabbit@rabbit3,rabbit@rabbit1,rabbit@rabbit2]&#125;]</span><br><span class="line">...done.</span><br><span class="line">rabbit3$ rabbitmqctl cluster_status</span><br><span class="line">Cluster status of node rabbit@rabbit3 ...</span><br><span class="line">[&#123;nodes,[&#123;disc,[rabbit@rabbit3,rabbit@rabbit2,rabbit@rabbit1]&#125;]&#125;,</span><br><span class="line"> &#123;running_nodes,[rabbit@rabbit2,rabbit@rabbit1,rabbit@rabbit3]&#125;]</span><br><span class="line">...done.</span><br></pre></td></tr></table></figure></p>
+<p>按照上面的步骤，我们可以在任意时间添加新的 node 到 cluster 中，只要 cluster 处于运行状态。</p>
+<h2 id="重启集群节点"><a href="#重启集群节点" class="headerlink" title="重启集群节点"></a>重启集群节点</h2><p>cluster 中的 node 在任何时候都可以被停止。 同样地如果他们崩溃了也是没有任何问题的。在上述两种情况中，cluster 中的其他 node 都可以不受任何影响的继续运行，这些“非正常” node 重新启动后会自动地与 cluster 中的其他 node 取得联系。 </p>
+<p>我们手动关闭 rabbit@rabbit1 和 rabbit@rabbit3 后，通过命令查看 cluster 的状态：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">rabbit1$ rabbitmqctl stop</span><br><span class="line">Stopping and halting node rabbit@rabbit1 ...done.</span><br><span class="line">rabbit2$ rabbitmqctl cluster_status</span><br><span class="line">Cluster status of node rabbit@rabbit2 ...</span><br><span class="line">[&#123;nodes,[&#123;disc,[rabbit@rabbit1,rabbit@rabbit2,rabbit@rabbit3]&#125;]&#125;,</span><br><span class="line"> &#123;running_nodes,[rabbit@rabbit3,rabbit@rabbit2]&#125;]</span><br><span class="line">...done.</span><br><span class="line">rabbit3$ rabbitmqctl cluster_status</span><br><span class="line">Cluster status of node rabbit@rabbit3 ...</span><br><span class="line">[&#123;nodes,[&#123;disc,[rabbit@rabbit1,rabbit@rabbit2,rabbit@rabbit3]&#125;]&#125;,</span><br><span class="line"> &#123;running_nodes,[rabbit@rabbit2,rabbit@rabbit3]&#125;]</span><br><span class="line">...done.</span><br><span class="line">rabbit3$ rabbitmqctl stop</span><br><span class="line">Stopping and halting node rabbit@rabbit3 ...done.</span><br><span class="line">rabbit2$ rabbitmqctl cluster_status</span><br><span class="line">Cluster status of node rabbit@rabbit2 ...</span><br><span class="line">[&#123;nodes,[&#123;disc,[rabbit@rabbit1,rabbit@rabbit2,rabbit@rabbit3]&#125;]&#125;,</span><br><span class="line"> &#123;running_nodes,[rabbit@rabbit2]&#125;]</span><br><span class="line">...done.</span><br></pre></td></tr></table></figure></p>
+<p>现在我们重新启动 node ，并查看 cluster 的状态：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">rabbit1$ rabbitmq-server -detached</span><br><span class="line">rabbit1$ rabbitmqctl cluster_status</span><br><span class="line">Cluster status of node rabbit@rabbit1 ...</span><br><span class="line">[&#123;nodes,[&#123;disc,[rabbit@rabbit1,rabbit@rabbit2,rabbit@rabbit3]&#125;]&#125;,</span><br><span class="line"> &#123;running_nodes,[rabbit@rabbit2,rabbit@rabbit1]&#125;]</span><br><span class="line">...done.</span><br><span class="line">rabbit2$ rabbitmqctl cluster_status</span><br><span class="line">Cluster status of node rabbit@rabbit2 ...</span><br><span class="line">[&#123;nodes,[&#123;disc,[rabbit@rabbit1,rabbit@rabbit2,rabbit@rabbit3]&#125;]&#125;,</span><br><span class="line"> &#123;running_nodes,[rabbit@rabbit1,rabbit@rabbit2]&#125;]</span><br><span class="line">...done.</span><br><span class="line">rabbit3$ rabbitmq-server -detached</span><br><span class="line">rabbit1$ rabbitmqctl cluster_status</span><br><span class="line">Cluster status of node rabbit@rabbit1 ...</span><br><span class="line">[&#123;nodes,[&#123;disc,[rabbit@rabbit1,rabbit@rabbit2,rabbit@rabbit3]&#125;]&#125;,</span><br><span class="line"> &#123;running_nodes,[rabbit@rabbit2,rabbit@rabbit1,rabbit@rabbit3]&#125;]</span><br><span class="line">...done.</span><br><span class="line">rabbit2$ rabbitmqctl cluster_status</span><br><span class="line">Cluster status of node rabbit@rabbit2 ...</span><br><span class="line">[&#123;nodes,[&#123;disc,[rabbit@rabbit1,rabbit@rabbit2,rabbit@rabbit3]&#125;]&#125;,</span><br><span class="line"> &#123;running_nodes,[rabbit@rabbit1,rabbit@rabbit2,rabbit@rabbit3]&#125;]</span><br><span class="line">...done.</span><br><span class="line">rabbit3$ rabbitmqctl cluster_status</span><br><span class="line">Cluster status of node rabbit@rabbit3 ...</span><br><span class="line">[&#123;nodes,[&#123;disc,[rabbit@rabbit1,rabbit@rabbit2,rabbit@rabbit3]&#125;]&#125;,</span><br><span class="line"> &#123;running_nodes,[rabbit@rabbit2,rabbit@rabbit1,rabbit@rabbit3]&#125;]</span><br><span class="line">...done.</span><br></pre></td></tr></table></figure></p>
+<p>有一些重要的注意事项：</p>
+<ul>
+<li>当整个 cluster 不能工作了，最后一个失效的 node 必须是第一个重新开始工作的那一个。如果这种情况得不到满足，所有 node 将会为最后一个磁盘 node 的恢复等待 30 秒。如果最后一个离线的 node 无法重新上线，我们可以通过命令 forget_cluster_node 将其从 cluster 中移除 - 具体参考 rabbitmqctl 的使用手册。</li>
+<li>如果所有的节点在不受控的情况下停止（比如断电），在这种情况下，可以使用force_boot命令使它再次启动 - 具体参考 rabbitmqctl 的使用手册。</li>
+</ul>
+<h2 id="拆分集群"><a href="#拆分集群" class="headerlink" title="拆分集群"></a>拆分集群</h2><p>当 node 不应该继续存在于一个 cluster 中时，我们需要显式的将这些 node 移除。我们首先从 cluster 中移除 rabbit@rabbit3 ，将其还原为独立运行状态。具体做法为，在 rabbit@rabbit3 上先停止 RabbitMQ 应用，再重置 node ，最后重新启动RabbitMQ 应用。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">rabbit3$ rabbitmqctl stop_app</span><br><span class="line">Stopping node rabbit@rabbit3 ...done.</span><br><span class="line">rabbit3$ rabbitmqctl reset</span><br><span class="line">Resetting node rabbit@rabbit3 ...done.</span><br><span class="line">rabbit3$ rabbitmqctl start_app</span><br><span class="line">Starting node rabbit@rabbit3 ...done.</span><br></pre></td></tr></table></figure></p>
+<p>值得注意的是，此时仍旧可以通过 list 命令发现 rabbit@rabbit3 仍然作为 node 显示出来。 </p>
+<p>在 node 上运行 cluster_status 命令可以发现 rabbit@rabbit3 已经不再是 cluster 中的一员，且已经处于独立运行状态：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">rabbit1$ rabbitmqctl cluster_status</span><br><span class="line">Cluster status of node rabbit@rabbit1 ...</span><br><span class="line">[&#123;nodes,[&#123;disc,[rabbit@rabbit1,rabbit@rabbit2]&#125;]&#125;,</span><br><span class="line"> &#123;running_nodes,[rabbit@rabbit2,rabbit@rabbit1]&#125;]</span><br><span class="line">...done.</span><br><span class="line">rabbit2$ rabbitmqctl cluster_status</span><br><span class="line">Cluster status of node rabbit@rabbit2 ...</span><br><span class="line">[&#123;nodes,[&#123;disc,[rabbit@rabbit1,rabbit@rabbit2]&#125;]&#125;,</span><br><span class="line"> &#123;running_nodes,[rabbit@rabbit1,rabbit@rabbit2]&#125;]</span><br><span class="line">...done.</span><br><span class="line">rabbit3$ rabbitmqctl cluster_status</span><br><span class="line">Cluster status of node rabbit@rabbit3 ...</span><br><span class="line">[&#123;nodes,[&#123;disc,[rabbit@rabbit3]&#125;]&#125;,&#123;running_nodes,[rabbit@rabbit3]&#125;]</span><br><span class="line">...done.</span><br></pre></td></tr></table></figure></p>
+<p>我们还可以利用远端移除 node 的操作，这在有些情况下是很有用的，比如对无任何反应的 node 的 处理 。例如，我们可以在 rabbit@rabbit2 上执行移除 rabbit@rabbit1 的操作。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">rabbit1$ rabbitmqctl stop_app</span><br><span class="line">Stopping node rabbit@rabbit1 ...done.</span><br><span class="line">rabbit2$ rabbitmqctl forget_cluster_node rabbit@rabbit1</span><br><span class="line">Removing node rabbit@rabbit1 from cluster ...</span><br><span class="line">...done.</span><br></pre></td></tr></table></figure></p>
+<p>注意到，rabbit1 仍旧会认为自己与 rabbit2 处于同一个 cluster 中，但是此时在 rabbit1 上执行 start_app 操作会提示相应错误信息。我们可以将 rabbit1 重置后让它重新运行。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">rabbit1$ rabbitmqctl start_app</span><br><span class="line">Starting node rabbit@rabbit1 ...</span><br><span class="line">Error: inconsistent_cluster: Node rabbit@rabbit1 thinks it&apos;s clustered with node rabbit@rabbit2, but rabbit@rabbit2 disagrees</span><br><span class="line">rabbit1$ rabbitmqctl reset</span><br><span class="line">Resetting node rabbit@rabbit1 ...done.</span><br><span class="line">rabbit1$ rabbitmqctl start_app</span><br><span class="line">Starting node rabbit@mcnulty ...</span><br><span class="line">...done.</span><br></pre></td></tr></table></figure></p>
+<p>此时执行 cluster_status 命令可以显示出当前所有 3 个 node 均是作为独立的 RabbitMQ broker 处于运行状态：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">rabbit1$ rabbitmqctl cluster_status</span><br><span class="line">Cluster status of node rabbit@rabbit1 ...</span><br><span class="line">[&#123;nodes,[&#123;disc,[rabbit@rabbit1]&#125;]&#125;,&#123;running_nodes,[rabbit@rabbit1]&#125;]</span><br><span class="line">...done.</span><br><span class="line">rabbit2$ rabbitmqctl cluster_status</span><br><span class="line">Cluster status of node rabbit@rabbit2 ...</span><br><span class="line">[&#123;nodes,[&#123;disc,[rabbit@rabbit2]&#125;]&#125;,&#123;running_nodes,[rabbit@rabbit2]&#125;]</span><br><span class="line">...done.</span><br><span class="line">rabbit3$ rabbitmqctl cluster_status</span><br><span class="line">Cluster status of node rabbit@rabbit3 ...</span><br><span class="line">[&#123;nodes,[&#123;disc,[rabbit@rabbit3]&#125;]&#125;,&#123;running_nodes,[rabbit@rabbit3]&#125;]</span><br><span class="line">...done.</span><br></pre></td></tr></table></figure></p>
+<p>注意到 rabbit@rabbit2 会保有 cluster 的残余状态信息，而 rabbit@rabbit1 和 rabbit@rabbit3 却可以看成是新初始化的 RabbitMQ broker 。如果我们想要重新初始化 rabbit@rabbit2 ，我们可以按照下面的方式执行：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">rabbit2$ rabbitmqctl stop_app</span><br><span class="line">Stopping node rabbit@rabbit2 ...done.</span><br><span class="line">rabbit2$ rabbitmqctl reset</span><br><span class="line">Resetting node rabbit@rabbit2 ...done.</span><br><span class="line">rabbit2$ rabbitmqctl start_app</span><br><span class="line">Starting node rabbit@rabbit2 ...done.</span><br></pre></td></tr></table></figure></p>
+<h2 id="升级集群"><a href="#升级集群" class="headerlink" title="升级集群"></a>升级集群</h2><p>当RabbitMQ从一个版本升级到另一个版本的时候（比如：从3.0.x到3.1.x,或者从2.x.x到3.x.x），或者升级Erlang环境，整个集群必须停止后进行升级（集群不能够运行混合版本）。这里指的不是升级补丁版本的情况（比如：从3.0.x到3.0.y），除非在发行版本中有特殊说明，这些版本是可以在一个集群中混合使用。因此在升级之前强烈建议查看发行版本的说明。</p>
+<p>Some patch releases known to require a cluster-wide restart:</p>
+<ul>
+<li>3.0.0 cannot be mixed with later versions from the 3.0.x series</li>
+<li>3.6.6 and later cannot be mixed with earlier versions from the 3.6.x series</li>
+<li></li>
+</ul>
+<p>当 RabbitMQ 从一个版本升级到另一个版本时，如果必要，RabbitMQ 会自动升级持久化数据结构。在 cluster 中，上述工作会由第一个被启动的磁盘 node 进行（即“负责升级的” node ）。所以，当你升级一个 RabbitMQ cluster 的时候，不可以首先启动任何内存 node ，任何内存 node 的启动将产生一条错误消息并且启动失败。 </p>
+<p>尽管不是一定必要，但是建议你事先决定好使用哪个磁盘 node 作为升级点（upgrader），然后在升级过程中，最后停止那个 node ，最先启动那个 node 。否则，在 升级点 node 停止和最后停止的 node 之间所做的对于 cluster 配置的修改将会被丢失掉。 </p>
+<p>自动升级的功能仅在 RabbitMQ 2.1.1 和之后的版本中才具有。如果你使用了更早版本的 cluster ，你讲需要通过重新构建的方式来升级。</p>
+<h2 id="单机上的集群"><a href="#单机上的集群" class="headerlink" title="单机上的集群"></a>单机上的集群</h2><p>在一些情况下，在单机上运行 RabbitMQ node 的 cluster 可能对你很有实用价值。其中之一是，你可以在你的台式机或者笔记本上运行 cluster 而不用额外跑多个虚拟机。</p>
+<p>为了在单个主机上运行多个RabbitMQ节点，确保节点具有不同的节点名称，数据存储位置，日志文件位置，并且绑定到不同的端口，包含那些使用的插件，在<a href="http://www.rabbitmq.com/configure.html#define-environment-variables" target="_blank" rel="noopener">配置指南</a>中查看RABBITMQ_NODENAME, RABBITMQ_NODE_PORT, 和 RABBITMQ_DIST_PORT的介绍，以及在文件和目录位置指南中的查看RABBITMQ_MNESIA_DIR, RABBITMQ_CONFIG_FILE, and RABBITMQ_LOG_BASE描述。</p>
+<p>你可以反复调用rabbitmq-server脚本在同一个主机上启动多个节点（Windows里面是rabbitmq-server.bat文件），比如：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ RABBITMQ_NODE_PORT=5672 RABBITMQ_NODENAME=rabbit rabbitmq-server -detached</span><br><span class="line">$ RABBITMQ_NODE_PORT=5673 RABBITMQ_NODENAME=hare rabbitmq-server -detached</span><br><span class="line">$ rabbitmqctl -n hare stop_app</span><br><span class="line">$ rabbitmqctl -n hare join_cluster rabbit@`hostname -s`</span><br><span class="line">$ rabbitmqctl -n hare start_app</span><br></pre></td></tr></table></figure></p>
+<p>上述步骤将创建2个节点的集群，二者都是作为磁盘节点，注意 如果你想开放其他端口，你可以通过配置那些不冲突的端口运行，通过命令完成：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ RABBITMQ_NODE_PORT=5672 RABBITMQ_SERVER_START_ARGS=&quot;-rabbitmq_management listener [&#123;port,15672&#125;]&quot; RABBITMQ_NODENAME=rabbit rabbitmq-server -detached</span><br><span class="line">$ RABBITMQ_NODE_PORT=5673 RABBITMQ_SERVER_START_ARGS=&quot;-rabbitmq_management listener [&#123;port,15673&#125;]&quot; RABBITMQ_NODENAME=hare rabbitmq-server -detached</span><br></pre></td></tr></table></figure></p>
+<p>上述命令同样建立了两个 node 的 cluster ，但是使用了管理插件。</p>
+<h2 id="改变主机名"><a href="#改变主机名" class="headerlink" title="改变主机名"></a>改变主机名</h2><p>RabbitMQ 节点通过主机名来进行通信。因此，所有的节点必须能够解析来自集群中的其他节点。rabbitmqctl也是在这种情况使用。</p>
+<p>除此之外，数据库目录使用当前的主机名在系统中使用。如果主机名发生了改变，一个新的空数据库将被创建。为了避免数据丢失创建一个固定的主机名是很重要的。当主机名发生了改变你需要重启RabbitMQ：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ /etc/init.d/rabbitmq-server restart</span><br></pre></td></tr></table></figure></p>
+<p>A similar effect can be achieved by using rabbit@localhost as the broker nodename. The impact of this solution is that clustering will not work, because the chosen hostname will not resolve to a routable address from remote hosts. The rabbitmqctl command will similarly fail when invoked from a remote host. A more sophisticated solution that does not suffer from this weakness is to use DNS, e.g. Amazon Route 53 if running on EC2. If you want to use the full hostname for your nodename (RabbitMQ defaults to the short name), and that full hostname is resolveable using DNS, you may want to investigate setting the environment variable RABBITMQ_USE_LONGNAME=true.</p>
+<p>查看<a href="http://www.rabbitmq.com/clustering.html#overview-hostname-requirements" target="_blank" rel="noopener">hostname resolution guide</a>获取更多的信息。</p>
+<h2 id="防火墙后的节点"><a href="#防火墙后的节点" class="headerlink" title="防火墙后的节点"></a>防火墙后的节点</h2><p>这种情况是指数据中心或者可靠网络上的 cluster 中的 node 彼此之间存在防火墙的情况。再一次重申，不建议在 WAN 或者 node 之间的网络连接不可靠的情况下创建 cluster 。 </p>
+<p>在最常见的配置中，您将需要打开多个标准端口：</p>
+<ol>
+<li>4369 (epmd)</li>
+<li>5672, 5671 (AMQP 0-9-1 and 1.0 without and with TLS)</li>
+<li><ol start="25672">
+<li>This port used by Erlang distribution for inter-node and CLI tools communication and is allocated from a dynamic range (limited to a single port by default, computed as AMQP port + 20000). See networking guide for details.</li>
+</ol>
+</li>
+<li>15672 (if management plugin is enabled)</li>
+<li>61613, 61614 (if STOMP is enabled)</li>
+<li>1883, 8883 (if MQTT is enabled)</li>
+</ol>
+<p>查看 <a href="http://www.rabbitmq.com/networking.html" target="_blank" rel="noopener">RabbitMQ Networking guide</a>获取更详细的信息.</p>
+<h2 id="集群中的Erlang版本"><a href="#集群中的Erlang版本" class="headerlink" title="集群中的Erlang版本"></a>集群中的Erlang版本</h2><p>所有节点都必须运行在相同版本的erlang环境。</p>
+<h2 id="从客户端连接到集群"><a href="#从客户端连接到集群" class="headerlink" title="从客户端连接到集群"></a>从客户端连接到集群</h2><p>客户端可以透明地连接到 cluster 中的任意一个 node 上。 如果当前与客户端处于连接状态的那个 node 失效了，但是 cluster 中的其他 node 正常工作，那么客户端应该发现当前连接的关闭，然后应该可以重新连接到 cluster 中的其他正常的 node 上。一般来讲，将 node 的主机名或者 IP 地址 硬编码 到客户端应用程序中是非常不明智的：这会导致各种坑爹问题的出现，因为一旦 cluster 的配置改变或者 cluster 中的 ndoe 数目改变，客户端将面临重新编码、编译和重新发布的问题。作为替代，我们建议一种更加一般化的方式：采用 动态 DNS 服务 ，其具有非常短的 TTL 配置，或者 普通 TCP 负载均衡器 ，或者通过随机行走或者类似技术实现的某种形式的 mobile IP 。通常来讲，关于如何成功连接 cluster 中的 node 已经超出了 RabbitMQ 本身要说明的范畴，我们建议你使用其他的专门用于处理这方面问题的技术来解决这种问题。 </p>
+<h2 id="带内存节点的集群"><a href="#带内存节点的集群" class="headerlink" title="带内存节点的集群"></a>带内存节点的集群</h2><p>RAM nodes keep their metadata only in memory. As RAM nodes don’t have to write to disc as much as disc nodes, they can perform better. However, note that since persistent queue data is always stored on disc, the performance improvements will affect only resource management (e.g. adding/removing queues, exchanges, or vhosts), but not publishing or consuming speed.</p>
+<p>RAM nodes are an advanced use case; when setting up your first cluster you should simply not use them. You should have enough disc nodes to handle your redundancy requirements, then if necessary add additional RAM nodes for scale.</p>
+<p>A cluster containing only RAM nodes is fragile; if the cluster stops you will not be able to start it again and will lose all data. RabbitMQ will prevent the creation of a RAM-node-only cluster in many situations, but it can’t absolutely prevent it.</p>
+<p>The examples here show a cluster with one disc and one RAM node for simplicity only; such a cluster is a poor design choice.</p>
+<h3 id="创建内存节点"><a href="#创建内存节点" class="headerlink" title="创建内存节点"></a>创建内存节点</h3><p>我们可以声明一个内存节点加入到集群环境中，我们在使用rabbitmqctl join_cluster命令之，加上 –ram 标签即可：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">rabbit2$ rabbitmqctl stop_app</span><br><span class="line">Stopping node rabbit@rabbit2 ...done.</span><br><span class="line">rabbit2$ rabbitmqctl join_cluster --ram rabbit@rabbit1</span><br><span class="line">Clustering node rabbit@rabbit2 with [rabbit@rabbit1] ...done.</span><br><span class="line">rabbit2$ rabbitmqctl start_app</span><br><span class="line">Starting node rabbit@rabbit2 ...done.</span><br></pre></td></tr></table></figure></p>
+<p>内存节点在cluster status中显示效果如下:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">rabbit1$ rabbitmqctl cluster_status</span><br><span class="line">Cluster status of node rabbit@rabbit1 ...</span><br><span class="line">[&#123;nodes,[&#123;disc,[rabbit@rabbit1]&#125;,&#123;ram,[rabbit@rabbit2]&#125;]&#125;,</span><br><span class="line"> &#123;running_nodes,[rabbit@rabbit2,rabbit@rabbit1]&#125;]</span><br><span class="line">...done.</span><br><span class="line">rabbit2$ rabbitmqctl cluster_status</span><br><span class="line">Cluster status of node rabbit@rabbit2 ...</span><br><span class="line">[&#123;nodes,[&#123;disc,[rabbit@rabbit1]&#125;,&#123;ram,[rabbit@rabbit2]&#125;]&#125;,</span><br><span class="line"> &#123;running_nodes,[rabbit@rabbit1,rabbit@rabbit2]&#125;]</span><br><span class="line">...done.</span><br></pre></td></tr></table></figure></p>
+<h3 id="改变节点类型"><a href="#改变节点类型" class="headerlink" title="改变节点类型"></a>改变节点类型</h3><p>我们可以改变 node 的类型，如磁盘 node 到内存 node ，或者相反。比如将 rabbit@rabbit2 和 rabbit@rabbit3 的 node 类型都变成和之前不同的种类。我们可以使用命令 change_cluster_node_type 来进行转换，但是首先需要将 node 停止。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">rabbit2$ rabbitmqctl stop_app</span><br><span class="line">Stopping node rabbit@rabbit2 ...done.</span><br><span class="line">rabbit2$ rabbitmqctl change_cluster_node_type disc</span><br><span class="line">Turning rabbit@rabbit2 into a disc node ...</span><br><span class="line">...done.</span><br><span class="line">Starting node rabbit@rabbit2 ...done.</span><br><span class="line">rabbit1$ rabbitmqctl stop_app</span><br><span class="line">Stopping node rabbit@rabbit1 ...done.</span><br><span class="line">rabbit1$ rabbitmqctl change_cluster_node_type ram</span><br><span class="line">Turning rabbit@rabbit1 into a ram node ...</span><br><span class="line">rabbit1$ rabbitmqctl start_app</span><br><span class="line">Starting node rabbit@rabbit1 ...done.</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/RabbitMQ/" rel="tag"># RabbitMQ</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/09/23/RabbitMQ-Installing-on-Generic-Unix/" rel="next" title="RabbitMQ Installing on Generic Unix">
+                <i class="fa fa-chevron-left"></i> RabbitMQ Installing on Generic Unix
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/09/25/RabbitMQ-Install-on-RPM-based-Linux/" rel="prev" title="RabbitMQ Install on RPM-based Linux">
+                RabbitMQ Install on RPM-based Linux <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/images/avatar.jpg"
+                alt="陈均" />
+            
+              <p class="site-author-name" itemprop="name">陈均</p>
+              <p class="site-description motion-element" itemprop="description">世间万物皆空。唯其空，便能包容万物。</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">28</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">11</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">11</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#概述"><span class="nav-number">1.</span> <span class="nav-text">概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#什么是复制"><span class="nav-number">2.</span> <span class="nav-text">什么是复制?</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#主机名解析要求"><span class="nav-number">3.</span> <span class="nav-text">主机名解析要求</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#集群构成"><span class="nav-number">4.</span> <span class="nav-text">集群构成</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#故障处理"><span class="nav-number">5.</span> <span class="nav-text">故障处理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#磁盘和内存节点"><span class="nav-number">6.</span> <span class="nav-text">磁盘和内存节点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#集群操作示范"><span class="nav-number">7.</span> <span class="nav-text">集群操作示范</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#节点-和CLI工具-怎么认证其他节点-使用ErlangCookie方式"><span class="nav-number">8.</span> <span class="nav-text">节点(和CLI工具)怎么认证其他节点: 使用ErlangCookie方式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#启动独立节点"><span class="nav-number">9.</span> <span class="nav-text">启动独立节点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#创建集群"><span class="nav-number">10.</span> <span class="nav-text">创建集群</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#重启集群节点"><span class="nav-number">11.</span> <span class="nav-text">重启集群节点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#拆分集群"><span class="nav-number">12.</span> <span class="nav-text">拆分集群</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#升级集群"><span class="nav-number">13.</span> <span class="nav-text">升级集群</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#单机上的集群"><span class="nav-number">14.</span> <span class="nav-text">单机上的集群</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#改变主机名"><span class="nav-number">15.</span> <span class="nav-text">改变主机名</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#防火墙后的节点"><span class="nav-number">16.</span> <span class="nav-text">防火墙后的节点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#集群中的Erlang版本"><span class="nav-number">17.</span> <span class="nav-text">集群中的Erlang版本</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#从客户端连接到集群"><span class="nav-number">18.</span> <span class="nav-text">从客户端连接到集群</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#带内存节点的集群"><span class="nav-number">19.</span> <span class="nav-text">带内存节点的集群</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#创建内存节点"><span class="nav-number">19.1.</span> <span class="nav-text">创建内存节点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#改变节点类型"><span class="nav-number">19.2.</span> <span class="nav-text">改变节点类型</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">陈均</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动 v3.7.1</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Pisces</a> v6.3.0</div>
+
+
+
+  <div class="footer-custom"><a target="_blank" rel="external nofollow" href="http://www.beian.miit.gov.cn"><b>蜀ICP备17001803号</b></a></div>
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.3.0"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=6.3.0"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.3.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.3.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.3.0"></script>
+
+
+
+  
+
+  
+    <script id="dsq-count-scr" src="https://cjoop.disqus.com/count.js" async></script>
+  
+
+  
+    <script type="text/javascript">
+      var disqus_config = function () {
+        this.page.url = 'http://cjoop.top/2016/09/24/RabbitMQ-Clustering-Guide/';
+        this.page.identifier = '2016/09/24/RabbitMQ-Clustering-Guide/';
+        this.page.title = 'RabbitMQ Clustering Guide';
+        };
+      function loadComments () {
+        var d = document, s = d.createElement('script');
+        s.src = 'https://cjoop.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      }
+      
+        loadComments();
+      
+    </script>
+  
+
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("X2YtjBbKwWtfKz2jH6SBGpLa-gzGzoHsz", "S6zjXgoW7l4HGNvpcJrXroPJ");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            
+            counter.save(null, {
+              success: function(counter) {
+                
+                  var $element = $(document.getElementById(url));
+                  $element.find('.leancloud-visitors-count').text(counter.get('time'));
+                
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            
+              var $element = $(document.getElementById(url));
+              $element.find('.leancloud-visitors-count').text('Counter not initialized! See more at console err msg.');
+              console.error('ATTENTION! LeanCloud counter has security bug, see here how to solve it: https://github.com/theme-next/hexo-leancloud-counter-security. \n But you also can use LeanCloud without security, by set \'security\' option to \'false\'.');
+            
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=6.3.0" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.3.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.3.0" color="#222">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '6.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="这篇文档是对Redis Cluster的简单介绍，不会使用复杂的分布式系统概念来去理解。它只是提供了从用户角度来如果如何搭建集群，测试以及使用的方法，没有完全覆盖Redis Cluster specification内容。 所以本教程试图提供给最终用户一个简单的关于集群和一致性特征的描述. 注意，本教程必须使用Redis 3.0版本或者更高的版本。 如果你计划部署一个重要的Redis Cluste">
+<meta name="keywords" content="Redis">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis cluster tutorial">
+<meta property="og:url" content="http://cjoop.top/2016/10/20/Redis-Cluster-Tutorial/index.html">
+<meta property="og:site_name" content="永恒之道">
+<meta property="og:description" content="这篇文档是对Redis Cluster的简单介绍，不会使用复杂的分布式系统概念来去理解。它只是提供了从用户角度来如果如何搭建集群，测试以及使用的方法，没有完全覆盖Redis Cluster specification内容。 所以本教程试图提供给最终用户一个简单的关于集群和一致性特征的描述. 注意，本教程必须使用Redis 3.0版本或者更高的版本。 如果你计划部署一个重要的Redis Cluste">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2018-06-23T08:04:07.897Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Redis cluster tutorial">
+<meta name="twitter:description" content="这篇文档是对Redis Cluster的简单介绍，不会使用复杂的分布式系统概念来去理解。它只是提供了从用户角度来如果如何搭建集群，测试以及使用的方法，没有完全覆盖Redis Cluster specification内容。 所以本教程试图提供给最终用户一个简单的关于集群和一致性特征的描述. 注意，本教程必须使用Redis 3.0版本或者更高的版本。 如果你计划部署一个重要的Redis Cluste">
+
+
+
+
+
+
+  <link rel="canonical" href="http://cjoop.top/2016/10/20/Redis-Cluster-Tutorial/"/>
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Redis cluster tutorial | 永恒之道</title>
+  
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">永恒之道</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br />首页</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+    <a href="/tags/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />标签</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+    <a href="/categories/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-th"></i> <br />分类</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />归档</a>
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://cjoop.top/2016/10/20/Redis-Cluster-Tutorial/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="陈均">
+      <meta itemprop="description" content="世间万物皆空。唯其空，便能包容万物。">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="永恒之道">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Redis cluster tutorial
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2016-10-20 21:30:26" itemprop="dateCreated datePublished" datetime="2016-10-20T21:30:26+08:00">2016-10-20</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2018-06-23 16:04:07" itemprop="dateModified" datetime="2018-06-23T16:04:07+08:00">2018-06-23</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2016/10/20/Redis-Cluster-Tutorial/#comments" itemprop="discussionUrl">
+                
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2016/10/20/Redis-Cluster-Tutorial/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/2016/10/20/Redis-Cluster-Tutorial/" class="leancloud_visitors" data-flag-title="Redis cluster tutorial">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数：</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>这篇文档是对Redis Cluster的简单介绍，不会使用复杂的分布式系统概念来去理解。它只是提供了从用户角度来如果如何搭建集群，测试以及使用的方法，没有完全覆盖<a href="https://redis.io/topics/cluster-spec" target="_blank" rel="noopener">Redis Cluster specification</a>内容。</p>
+<p>所以本教程试图提供给最终用户一个简单的关于集群和一致性特征的描述.</p>
+<p>注意，本教程必须使用Redis 3.0版本或者更高的版本。</p>
+<p>如果你计划部署一个重要的Redis Cluster,推荐阅读正式的规范文档，即使载不严格的要求下。不管怎样从这篇文档开始是一个很好的主意，玩一会儿Redis Cluster后，在去阅读规范。</p>
+<h2 id="Redis-Cluster-101"><a href="#Redis-Cluster-101" class="headerlink" title="Redis Cluster 101"></a>Redis Cluster 101</h2><p>Redis Cluster 提供了一种Redis安装方式，能够让数据自动的分片到多个Redis节点。</p>
+<p>Redis Cluster 也在某种程度上通过分区来提供可用性，在实际环境中当某个节点宕机或者不可达的情况下继续处理命令。<br>在发生较大故障的时候集群会停止操作（例如大部分的主节点不可用的情况下）。<br>所以你会得到一个什么样的Redis Cluster?</p>
+<ul>
+<li>自动分割数据到不同的节点上的能力。</li>
+<li>整个集群的部分节点失败或者不可达的情况下能够继续处理命令的能力。</li>
+</ul>
+<h2 id="Redis-Cluster-TCP-ports"><a href="#Redis-Cluster-TCP-ports" class="headerlink" title="Redis Cluster TCP ports"></a>Redis Cluster TCP ports</h2><p>每个Redis Cluster节点必须有两个TCP链接被打开。正常情况下的Redis TCP端口使用的是6379来服务客户端，在这个数据端口的基础上加10000就可以获得集群使用的TCP端口，比如16379。第二个大的端口用于Cluster总线，节点和节点之间的通信采用二进制协议。这个Cluster总线用于对节点进行故障检测，配置更新，故障操作授权等等。Clients不要尝试和Cluster总线端口进行通信，应该使用Redis命令端口，在你的防火墙里面要打开这2个端口，否则其他Redis Cluster节点将不能够进行连接。</p>
+<p>这个命令端口和cluster总线的端口的偏移量是固定的10000.<br>如果要让Redis集群环境很好的工作，每个节点都需要注意下面2点：</p>
+<ol>
+<li>用于正常通讯的端口（通常是6379）和集群环境的所有节点都能够正确的到达（使用这个端口进行键的迁移）。</li>
+<li>这个集群总线的端口（客户端端口+10000）也必须和其他所有的集群节点互通。</li>
+</ol>
+<p>如果你没有打开这2个TCP端口，那你的集群环境将不能够工作。<br>集群总线使用的是二进制协议，作为节点到节点的数据交换，更适合用较小的带宽和处理时间来交换节点之间的信息。</p>
+<h2 id="Redis-Cluster-and-Docker"><a href="#Redis-Cluster-and-Docker" class="headerlink" title="Redis Cluster and Docker"></a>Redis Cluster and Docker</h2><p>目前Redis Cluster 不支持NATted环境和常规环境中ip地址和端口的映射。</p>
+<p>Docker使用了一种端口映射技术：程序会在Docker容器内部运行，可能会暴露一个不同的端口来给程序使用。在同一台服务器，同一时间内可以运行相同端口的多个容器，这是很有用的。<br>如果要在Doocker里面兼容Redis Cluster你需要采用host networking模式。请检查–net=host选项，更多的信息请阅读<a href="https://docs.docker.com/engine/userguide/networking/dockernetworks/" target="_blank" rel="noopener">Docker文档</a>。</p>
+<h2 id="Redis-Cluster-data-sharding"><a href="#Redis-Cluster-data-sharding" class="headerlink" title="Redis Cluster data sharding"></a>Redis Cluster data sharding</h2><p>Redis Cluster 没有使用一致性哈希,而是使用的另一种分片方式 <strong>hash slot</strong>。</p>
+<p>Redis集群里有16384个哈希槽，并且会计算出给定key的哈希槽是什么，我们是通过CRC16对16384取模来决定。<br>在集群里的每个节点负责一部分哈希槽的子集，比如你有3个节点的集群，那么：</p>
+<ul>
+<li>节点A包含0到5500的哈希槽。</li>
+<li>节点B包含5501到11000的哈希槽。</li>
+<li>节点C包含11001到16383的哈希槽。</li>
+</ul>
+<p>这样允许你很容易的在集群里添加并且删除节点。如果我想新增一个新的节点D，我只需要从节点A,B,C中移动某些哈希槽到D节点。同样如果我想从集群里面删除节点A，我只需把服务于A的哈希槽移动到B和C节点上。当节点A为空的时候我就可以把它从集群环境中完全的删除。</p>
+<p>移动哈希槽从一个节点到另一个节点不需要停止操作，添加和删除节点，改变节点持有哈希槽的百分比，也不需要停机。</p>
+<p>Redis集群支持多个key操作作为一个命令被执行（整个交易，或者Lua脚本的执行）在同一个哈希槽里。通过使用散列就可以强制多个key在同一个哈希槽里面。</p>
+<p>散列标记在Redis集群规范里面提到，大致意思就是如果key里面有{}子串，就只会对这个花括号内的字符串进行哈希计算，比如一个{foo}key 和另一个{foo}key就保证在同一个哈希槽，这样就可以在同一个命令里面使用多个key作为参数使用。</p>
+<h2 id="Redis-Cluster-master-slave-model"><a href="#Redis-Cluster-master-slave-model" class="headerlink" title="Redis Cluster master-slave model"></a>Redis Cluster master-slave model</h2><p>为了保证在部分主节点出现故障或者大部分节点无法通信的情况下仍然可用。Redis集群使用了主从模式，每个哈希槽从1（master自己）到N个副本（N-1个从节点）。</p>
+<p>在我们的例子里集群拥有A,B,C三个节点，如果节点B失败了这个集群就不能够继续工作，在这个哈希槽的5501-11000范围内我们无法提供服务了。</p>
+<p>所以我们在集群创建以后（或者过一段时间）我们要为每个主节点添加一个从节点，最终的集群组合是这样的：A,B,C是主节点，A1，B1，C1是他们的从节点，如果节点B失败了这个系统还是可以继续提供服务。</p>
+<p>节点B1复制节点B，节点B失败后，集群将会推选节点B1作为新的主节点并且继续提供服务。</p>
+<p>不过当节点B和B1都失败后，集群就不能够提供服务了。</p>
+<h2 id="Redis-Cluster-consistency-guarantees"><a href="#Redis-Cluster-consistency-guarantees" class="headerlink" title="Redis Cluster consistency guarantees"></a>Redis Cluster consistency guarantees</h2><p>Redis集群不能够保证强一致性。这意味着在实际环境中集群在特定的条件下可能会丢失写操作。</p>
+<p>为什么集群会丢失写主要原因是因为集群使用的是异步复制。写的流程如下：</p>
+<ul>
+<li>你的客户端向主节点B进行写操作。</li>
+<li>主节点B回复了你的客户端OK。</li>
+<li>主节点B将写的内容传播给其他从节点B1，B2和B3。</li>
+</ul>
+<p>正如你所看到的节点B并没有等待B1，B2，B3的确认就回复了客户端，因为这里考虑了性能问题，所以你的客户端在往节点B写入后，节点B会确认写操作，但是在它往其他从节点发送内容的时候崩掉了，这些从节点并没有接收到写的内容，此时有一个从节点被提升成了主节点，这个写的内容会被永久丢失。</p>
+<p>这非常类似的和大多数数据库配置为每秒刷新数据到磁盘一样，你可以在响应客户端之前强制将数据刷新到磁盘，但是这会影响性能。这也是Redis集群中基于同步复制的一种方案。</p>
+<p>基本上是在性能和一致性之前进行权衡。</p>
+<p>Redis Cluster在某些必要的情况下也能够支持同步写，通过实施<a href="https://redis.io/commands/wait" target="_blank" rel="noopener">WAIT</a>命令，可以降低丢失写操作的可能性，要注意即使使用了同步复制<br>Redis集群也不能够保证强一致性：在更复杂的情况下，一个不接受写操作的从节点被提升为主节点的可能性总是存在。</p>
+<p>这里还有另一种情况能够导致Redis集群丢失写操作，这发生在一个网络分区中，其中的一个客户端和一些少数的实例（至少包含一个主节点）被隔离在一起。<br>以我们的6个节点组成的集群环境为例子，A,B,C,A1，B1，C1，三个主节点和三个从节点。还有一个客户端，我们称为Z1。<br>发生网络分区,那么集群可能会分为两方，一方包含节点 A 、C 、A1 、B1 和 C1 ，另一方则包含节点 B 和客户端 Z1。<br>Z1仍然能够往主节点B中进行写操作, 如果网络分区发生时间较短,那么集群将会继续正常的运作,如果分区的时间足够让大部分的一方将B1选举为新的master节点，那么Z1写入B中得数据将会丢失掉。<br>注意， 在网络分裂出现期间， 客户端 Z1 可以向主节点 B 发送写命令的最大时间是有限制的， 这一时间限制称为节点超时时间（node timeout）， 是 Redis 集群的一个重要的配置选项。<br>节点超时后，主节点被认为失败了，并且能够被它的副本代替。主节点不能够感应其他的主节点，它将进入错误的状态并且停止写的接收。</p>
+<h2 id="Redis-Cluster-configuration-parameters"><a href="#Redis-Cluster-configuration-parameters" class="headerlink" title="Redis Cluster configuration parameters"></a>Redis Cluster configuration parameters</h2><p>我们创建一个集群部署的例子。在这之前，让我们从redis.conf文件里了解一下Redis集群的配置参数。有些参数是很容易理解的，有些参数会随着你的继续阅读而越来越清晰。</p>
+<ul>
+<li><strong>cluster-enabled &lt;yes/no&gt;</strong> :  在指定的Redis实例中如果设置的是yes就会激活Redis集群。否则实例会作为一个独立实例来运行。</li>
+<li><strong>cluster-config-file <filename></filename></strong>:注意虽然有这个名字的选项，但不是给用户编辑的配置文件，这个文件会随着集群环境的变化而自动改变，以便在启动时重新读取它。这个文件列出了其他节点的信息，他们的状态，变量等等。这个文件会因为某些消息的接收而重新将结果写到磁盘。</li>
+<li><strong>cluster-node-timeout <milliseconds></milliseconds></strong>:这个是Redis集群节点不认为是失败的最大时间,如果在指定的时间内不能够到达其他节点，它将被其他从节点代替。这个参数的控制在集群里很重要。尤其是，每个节点不能够在指定的时间内到达大多数主节点，将停止接收查询操作。</li>
+<li><strong>cluster-slave-validity-factor <factor></factor></strong>:如果设置为0，则从节点总是会尝试去对一个主节点进行故障转移，不管从节点和主节点断开的时间长度。如果值为正数，就会计算节点超时时间乘以这个因数得到最大的断开时间，如果这个节点是从节点，并且和主节点断开的连接时间超过了这个最大断开连接时间，就不会去尝试故障转移。举个例子：假设节点超时设置的是5秒，并且validity-factor设置的是10，一个从节点和主节点断开的时间超过了50秒就不会进行故障转移。注意任何一个非0的值都可能导致在主节点失败后没有从节点去进行故障转移而使得Redis集群不可用。这种情况下只有在原始的集群节点重新加入后才可以继续使用集群环境。</li>
+<li><strong>cluster-migration-barrier <count></count></strong>:主节点保持连接从节点的最小值。查看关于副本迁移的内容  获取更多的信息。</li>
+<li><strong>cluster-require-full-coverage &lt;yes/no&gt;</strong>: 默认情况下设置为yes，集群全部的slot有节点负责，集群状态才为ok，才能提供服务。如果设置为no，可以在slot没有全部分配的时候提供服务。不建议打开该配置，这样会造成分区的时候，小分区的master一直在接受写请求，而造成很长时间数据不一致。</li>
+</ul>
+<h2 id="Creating-and-using-a-Redis-Cluster"><a href="#Creating-and-using-a-Redis-Cluster" class="headerlink" title="Creating and using a Redis Cluster"></a>Creating and using a Redis Cluster</h2><p>注意：通过手动部署一个Redis集群环境也是很重要的一个学习环节。当然如果你想快速的获得一个可以运行的集群环境，可以跳过这一章节，直接通过使用create-cluster脚本来创建一个Redis集群环境。<br>创建一个集群环境，首先要有几个空实例运行在集群模式下。意味着集群的创建不使用正常的Redis实例，需要在激活了集群特性的基础上被创建。<br>以下是集群配置文件需要的最小配置：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">port 7000</span><br><span class="line">cluster-enabled yes</span><br><span class="line">cluster-config-file nodes.conf</span><br><span class="line">cluster-node-timeout 5000</span><br><span class="line">appendonly yes</span><br></pre></td></tr></table></figure></p>
+<p>我们看到通过cluster-enabled指令就可以激活集群模式。每个实例还包含了一个路径来存储这个配置文件，默认名字为nodes.conf。它会在Redis集群实例启动和每一次更新的时候需要。</p>
+<p>要让集群正常运作至少需要三个主节点，不过在刚开始试用集群功能时， 强烈建议使用六个节点： 其中三个为主节点， 而其余三个则是各个主节点的从节点。<br>首先， 让我们进入一个新目录， 并创建六个以端口号为名字的子目录， 稍后我们在将每个目录中运行一个 Redis 实例。像这样：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mkdir cluster-test</span><br><span class="line"><span class="built_in">cd</span> cluster-test</span><br><span class="line">mkdir 7000 7001 7002 7003 7004 7005</span><br></pre></td></tr></table></figure></p>
+<p>在文件夹 7000 至 7005 中， 各创建一个 redis.conf 文件， 文件的内容可以使用上面的示例配置文件， 但记得将配置中的端口号从 7000 改为与文件夹名字相同的号码。<br>从 Redis Github 页面 的 unstable 分支中取出最新的 Redis 源码， 编译出可执行文件 redis-server ， 并将文件复制到 cluster-test 文件夹， 然后使用类似以下命令， 在每个标签页中打开一个实例：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> 7000</span><br><span class="line">../redis-server ./redis.conf</span><br></pre></td></tr></table></figure></p>
+<p>实例打印的日志显示， 因为 nodes.conf 文件不存在， 所以每个节点都为它自身指定了一个新的 ID。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[82462] 26 Nov 11:56:55.329 * No cluster configuration found, I<span class="string">'m 97a3a64667477371c4479320d683e4c8db5858b1</span></span><br></pre></td></tr></table></figure></p>
+<p>这个ID将会永久的被这个实例使用以便这个实例在集群的上下文中具有唯一的名称。每个节点都会通过这个IDs来记住，而不是通过IP或者端口。IP地址和端口也许会改变，但这个唯一的节点身份不会改变，我们称为<strong>Node ID</strong>。</p>
+<h2 id="Creating-the-cluster"><a href="#Creating-the-cluster" class="headerlink" title="Creating the cluster"></a>Creating the cluster</h2><p>现在我们已经有一些实例在运行，我们需要对这些节点写入一些有用的配置来创建我们的集群。<br>通过使用 Redis 集群命令行工具 redis-trib可以很容易帮助我们完成，这是一个Ruby写的可执行程序，能够发送特殊的命令来创建新的集群环境，检查或者重新分片一个已经存在的集群，等等。<br>这个redis-trib工具可以在src目录下面找到。你需要安装redis gem来运行redis-trib。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gem install redis</span><br></pre></td></tr></table></figure></p>
+<p>简单的创建集群：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">./redis-trib.rb create --replicas 1 127.0.0.1:7000 127.0.0.1:7001 \</span><br><span class="line">127.0.0.1:7002 127.0.0.1:7003 127.0.0.1:7004 127.0.0.1:7005</span><br></pre></td></tr></table></figure></p>
+<p>这个命令在这里用于创建一个新的集群, 选项–replicas 1 表示我们希望为集群中的每个主节点创建一个从节点。<br>其他的参数则是我想创建新集群环境的实例地址列表。<br>我们的要求是创建一个集群环境有3个主节点和3个从节点。<br>Redis-trib 会提供一份配置给你参考。如果你接收这份配置输入yes。 redis-trib 就会将这份配置应用到集群当中,让各个节点开始互相通讯,最后可以得到如下信息：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[OK] All 16384 slots covered</span><br></pre></td></tr></table></figure></p>
+<p>这表示集群中的 16384 个槽都有至少一个主节点在处理， 集群运作正常。</p>
+<h2 id="Creating-a-Redis-Cluster-using-the-create-cluster-script"><a href="#Creating-a-Redis-Cluster-using-the-create-cluster-script" class="headerlink" title="Creating a Redis Cluster using the create-cluster script"></a>Creating a Redis Cluster using the create-cluster script</h2><p>如果你不想手动的去创建一个Redis集群环境，这里有一个非常简单的系统（但是你就不能够了解到更多的细节）。<br>在Redis分发目录里检查utils/create-cluster目录，这里有一个脚本文件create-cluster，这是一个简单的bash脚本。启动6个节点的集群环境，三主三从只需要执行以下流程的命令：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1. create-cluster start</span><br><span class="line">2. create-cluster create</span><br></pre></td></tr></table></figure></p>
+<p> 在第二步回答yes后redis-trib就会根据你想要的集群布局来生效。<br>You can now interact with the cluster, the first node will start at port 30001 by default. When you are done, stop the cluster with:你现在可以和集群环境交互了，第一个生效的节点运行的端口是30001。完成后，停止这个集群环境:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">1. create-cluster stop.</span><br></pre></td></tr></table></figure></p>
+<p>请阅读目录里面的README文件获取更多关于这样运行这个脚本。</p>
+<h2 id="Playing-with-the-cluster"><a href="#Playing-with-the-cluster" class="headerlink" title="Playing with the cluster"></a>Playing with the cluster</h2><p>Redis 集群现阶段的一个问题是客户端实现的库很少。<br>我知道的有以下一些实现：</p>
+<ul>
+<li><a href="http://github.com/antirez/redis-rb-cluster" target="_blank" rel="noopener">redis-rb-cluster</a> is a Ruby implementation written by me (@antirez) as a reference for other languages. It is a simple wrapper around the original redis-rb, implementing the minimal semantics to talk with the cluster efficiently.</li>
+<li><a href="https://github.com/Grokzen/redis-py-cluster" target="_blank" rel="noopener">redis-py-cluster</a> A port of redis-rb-cluster to Python. Supports majority of redis-py functionality. Is in active development.</li>
+<li>The popular <a href="https://github.com/nrk/predis" target="_blank" rel="noopener">Predis</a> has support for Redis Cluster, the support was recently updated and is in active development.</li>
+<li>The most used Java client, Jedis recently added support for Redis Cluster, see the <a href="https://github.com/xetorthio/jedis" target="_blank" rel="noopener">Jedis</a> Cluster section in the project README.</li>
+<li><a href="https://github.com/StackExchange/StackExchange.Redis" target="_blank" rel="noopener">StackExchange.Redis</a> offers support for C# (and should work fine with most .NET languages; VB, F#, etc)</li>
+<li><a href="https://github.com/thunks/thunk-redis" target="_blank" rel="noopener">thunk-redis</a> offers support for Node.js and io.js, it is a thunk/promise-based redis client with pipelining and cluster.</li>
+<li><a href="https://github.com/chasex/redis-go-cluster" target="_blank" rel="noopener">redis-go-cluster</a> is an implementation of Redis Cluster for the Go language using the Redigo library client as the base client. Implements MGET/MSET via result aggregation.</li>
+<li>The redis-cli utility in the unstable branch of the Redis repository at GitHub implements a very basic cluster support when started with the -c switch.</li>
+</ul>
+<p>一个最简单的测试Redis集群环境的方法是尝试使用客户端或者redis-cli命令行工具。下面是命令行测试的例子：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">$ redis-cli -c -p 7000</span><br><span class="line">redis 127.0.0.1:7000&gt; <span class="built_in">set</span> foo bar</span><br><span class="line">-&gt; Redirected to slot [12182] located at 127.0.0.1:7002</span><br><span class="line">OK</span><br><span class="line">redis 127.0.0.1:7002&gt; <span class="built_in">set</span> hello world</span><br><span class="line">-&gt; Redirected to slot [866] located at 127.0.0.1:7000</span><br><span class="line">OK</span><br><span class="line">redis 127.0.0.1:7000&gt; get foo</span><br><span class="line">-&gt; Redirected to slot [12182] located at 127.0.0.1:7002</span><br><span class="line"><span class="string">"bar"</span></span><br><span class="line">redis 127.0.0.1:7000&gt; get hello</span><br><span class="line">-&gt; Redirected to slot [866] located at 127.0.0.1:7000</span><br><span class="line"><span class="string">"world"</span></span><br></pre></td></tr></table></figure></p>
+<p><strong>注意</strong>：如果你时通过脚本创建的集群环境，你的节点可能监听的端口不同，默认是从30001开始。</p>
+<p>redis-cli 对集群的支持是非常基本的， 所以它总是依靠 Redis 集群节点来将它转向（redirect）至正确的节点。一个真正的（serious）集群客户端应该做得比这更好： 它应该用缓存记录起哈希槽与节点地址之间的映射（map）， 从而直接将命令发送到正确的节点上面。这种映射只会在集群的配置出现某些修改时变化， 比如说， 在一次故障转移（failover）之后， 或者系统管理员通过添加节点或移除节点来修改了集群的布局（layout）之后， 诸如此类。</p>
+<h2 id="Writing-an-example-app-with-redis-rb-cluster"><a href="#Writing-an-example-app-with-redis-rb-cluster" class="headerlink" title="Writing an example app with redis-rb-cluster"></a>Writing an example app with redis-rb-cluster</h2><p>在展示如何使用集群进行故障转移、重新分片等操作之前， 我们需要创建一个示例应用， 了解一些与 Redis 集群客户端进行交互的基本方法。<br>在运行示例应用的过程中， 我们会尝试让节点进入失效状态， 又或者开始一次重新分片， 以此来观察 Redis 集群在真实世界运行时的表现， 并且为了让这个示例尽可能地有用， 我们会让这个应用向集群进行写操作。<br>本节将通过两个示例应用来展示 <a href="http://github.com/antirez/redis-rb-cluster" target="_blank" rel="noopener">redis-rb-cluster</a> 的基本用法， 以下是本节的第一个示例应用， 它是一个名为 <a href="https://github.com/antirez/redis-rb-cluster/blob/master/example.rb" target="_blank" rel="noopener">example.rb</a> 的文件， 包含在redis-rb-cluster 项目里面:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line">1  require <span class="string">'./cluster'</span></span><br><span class="line"> 2</span><br><span class="line"> 3  <span class="keyword">if</span> ARGV.length != 2</span><br><span class="line"> 4      startup_nodes = [</span><br><span class="line"> 5          &#123;:host =&gt; <span class="string">"127.0.0.1"</span>, :port =&gt; 7000&#125;,</span><br><span class="line"> 6          &#123;:host =&gt; <span class="string">"127.0.0.1"</span>, :port =&gt; 7001&#125;</span><br><span class="line"> 7      ]</span><br><span class="line"> 8  <span class="keyword">else</span></span><br><span class="line"> 9      startup_nodes = [</span><br><span class="line">10          &#123;:host =&gt; ARGV[0], :port =&gt; ARGV[1].to_i&#125;</span><br><span class="line">11      ]</span><br><span class="line">12  end</span><br><span class="line">13</span><br><span class="line">14  rc = RedisCluster.new(startup_nodes,32,:timeout =&gt; 0.1)</span><br><span class="line">15</span><br><span class="line">16  last = <span class="literal">false</span></span><br><span class="line">17</span><br><span class="line">18  <span class="keyword">while</span> not last</span><br><span class="line">19      begin</span><br><span class="line">20          last = rc.get(<span class="string">"__last__"</span>)</span><br><span class="line">21          last = 0 <span class="keyword">if</span> !last</span><br><span class="line">22      rescue =&gt; e</span><br><span class="line">23          puts <span class="string">"error #&#123;e.to_s&#125;"</span></span><br><span class="line">24          sleep 1</span><br><span class="line">25      end</span><br><span class="line">26  end</span><br><span class="line">27</span><br><span class="line">28  ((last.to_i+1)..1000000000).each&#123;|x|</span><br><span class="line">29      begin</span><br><span class="line">30          rc.set(<span class="string">"foo#&#123;x&#125;"</span>,x)</span><br><span class="line">31          puts rc.get(<span class="string">"foo#&#123;x&#125;"</span>)</span><br><span class="line">32          rc.set(<span class="string">"__last__"</span>,x)</span><br><span class="line">33      rescue =&gt; e</span><br><span class="line">34          puts <span class="string">"error #&#123;e.to_s&#125;"</span></span><br><span class="line">35      end</span><br><span class="line">36      sleep 0.1</span><br><span class="line">37  &#125;</span><br></pre></td></tr></table></figure></p>
+<p>这个应用程序所做的工作非常简单, 它不断地以 foo<number> 为键， number 为值， 使用 SET 命令向数据库设置键值对,所以程序运行的结果流程大致如下：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">SET foo0 0</span><br><span class="line">SET foo1 1</span><br><span class="line">SET foo2 2</span><br><span class="line">And so forth...</span><br></pre></td></tr></table></figure></number></p>
+<p>代码中的每个集群操作都使用一个 begin 和 rescue 代码块（block）包裹着， 因为我们希望在代码出错时， 将错误打印到终端上面， 而不希望应用因为异常（exception）而退出。<br>程序的第14行是代码中第一个有趣的地方， 它创建了一个 Redis 集群对象， 其中创建对象所使用的参数及其意义如下：第一个参数是记录了启动节点的 startup_nodes 列表， 列表中包含了两个集群节点的地址。第二个参数指定了对于集群中的各个不同的节点， Redis 集群对象可以获得的最大连接数 ，第三个参数 timeout 指定了一个命令在执行多久之后， 才会被看作是执行失败。<br>启动列表中并不需要包含所有集群节点的地址， 但这些地址中至少要有一个是有效的。 一旦 redis-rb-cluster 成功连接上集群中的某个节点时， 集群节点列表就会被自动更新， 任何真正的的集群客户端都应该这样做。<br>现在， 程序创建的 Redis 集群对象实例被保存到 rc 变量里面， 我们可以将这个对象当作普通 Redis 对象实例来使用。<br>在18至26行， 我们先尝试阅读计数器中的值， 如果计数器不存在的话， 我们才将计数器初始化为 0 ： 通过将计数值保存到 Redis 的计数器里面， 我们可以在示例重启之后， 仍然继续之前的执行过程， 而不必每次重启之后都从 foo0 开始重新设置键值对。为了让程序在集群下线的情况下， 仍然不断地尝试读取计数器的值， 我们将读取操作包含在了一个 while 循环里面， 一般的应用程序并不需要如此小心。<br>28至37行是程序的主循环， 这个循环负责设置键值对， 并在设置出错时打印错误信息。程序在主循环的末尾添加了一个 sleep 调用， 让写操作的执行速度变慢， 帮助执行示例的人更容易看清程序的输出。执行 example.rb 程序将产生以下输出：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">ruby ./example.rb</span><br><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">^C (I stopped the program here)</span><br></pre></td></tr></table></figure></p>
+<p>这个程序并不是十分有趣， 稍后我们就会看到一个更有趣的集群应用示例， 不过在此之前， 让我们先使用这个示例来演示集群的重新分片操作。</p>
+<h2 id="Resharding-the-cluster"><a href="#Resharding-the-cluster" class="headerlink" title="Resharding the cluster"></a>Resharding the cluster</h2><p>现在， 让我们来试试对集群进行重新分片操作。在执行重新分片的过程中， 请让你的 example.rb 程序处于运行状态， 这样你就会看到， 重新分片并不会对正在运行的集群程序产生任何影响， 你也可以考虑将 example.rb 中的 sleep 调用删掉， 从而让重新分片操作在近乎真实的写负载下执行 重新分片操作基本上就是将某些节点上的哈希槽移动到另外一些节点上面， 和创建集群一样， 重新分片也可以使用 redis-trib 程序来执行 执行以下命令可以开始一次重新分片操作：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./redis-trib.rb reshard 127.0.0.1:7000</span><br></pre></td></tr></table></figure></p>
+<p>你只需要指定集群中其中一个节点的地址， redis-trib 就会自动找到集群中的其他节点。<br>目前 redis-trib 只能在管理员的协助下完成重新分片的工作， 你不能说从一个节点移动5%的哈希槽到另一个节点。所以从一开始，首先就要确定重新分片的数量是多少个:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">How many slots <span class="keyword">do</span> you want to move (from 1 to 16384)?</span><br></pre></td></tr></table></figure></p>
+<p>我们尝试重新对1000个哈希槽分片，如果我们的例子程序（example.rb）还在运行的话，那么应该有一定数量的键了。 然后redis-trib需要知道重新分片的目标是什么，也就是将要接收这些哈希槽的节点。我将使用第一个主节点，127.0.0.1:7000，但是我需要制定这个实例的节点ID。我们可以通过以下的命令获取到节点id:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ redis-cli -p 7000 cluster nodes | grep myself</span><br><span class="line">97a3a64667477371c4479320d683e4c8db5858b1 :0 myself,master - 0 0 0 connected 0-5460</span><br></pre></td></tr></table></figure></p>
+<p>好啦，我的目标节点ID是 97a3a64667477371c4479320d683e4c8db5858b1。<br>现在你将会被问到从哪些节点去获取这些键。我只需要输入all就可以从所有的主节点各获取一部分哈希槽。<br>最后确认后你将会看到每个redis-trib移动的槽的信息，每个key的移动的信息也会打印出来。<br>在重新分片的过程中，你的例子程序是不会受到影响的,你可以停止或者重新启动多次。<br>在重新分片结束后，你可以通过如下命令检查集群状态:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./redis-trib.rb check 127.0.0.1:7000</span><br></pre></td></tr></table></figure></p>
+<p>所有的插槽都将会被覆盖，但是这个主节点127.0.0.1:7000将会拥有更多的哈希槽，大约6461个。</p>
+<h2 id="Scripting-a-resharding-operation"><a href="#Scripting-a-resharding-operation" class="headerlink" title="Scripting a resharding operation"></a>Scripting a resharding operation</h2><p>重新分片过程还可以自动执行而不需要互动，手动指定一些参数即可，命令格式如下：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./redis-trib.rb reshard --from &lt;node-id&gt; --to &lt;node-id&gt; --slots &lt;number of slots&gt; --yes &lt;host&gt;:&lt;port&gt;</span><br></pre></td></tr></table></figure></p>
+<p>这样的方式就可以经常自动的进行重新分片，目前redis-trib还不能够很好的自动重新负载集群，此功能会在将来添加。</p>
+<h2 id="A-more-interesting-example-application"><a href="#A-more-interesting-example-application" class="headerlink" title="A more interesting example application"></a>A more interesting example application</h2><p>我们在前面使用的示例程序 example.rb 并不是十分有趣， 因为它只是不断地对集群进行写入， 但并不检查写入结果是否正确。</p>
+<p>比如说， 集群可能会错误地将 example.rb 发送的所有 SET 命令都改成了 SET foo 42 ， 但因为 example.rb 并不检查写入后的值，我们并不会注意到集群实际上写入的值是错误的。<br>redis-rb-cluster项目里面有一个更有趣的程序是consistency-test.rb。 它创建了多个计数器（默认为 1000 个）， 并通过发送 INCR 命令来增加这些计数器的值。<br>程序不仅仅是写操作，它做了两件事：</p>
+<ul>
+<li>使用INCR更新计数器的值，程序进行写操作。</li>
+<li>它在写之前会随机的去读取一个计数器，并且检查这个值是否是预期的值。</li>
+</ul>
+<p>换句话说， 这个程序是一个简单的一致性检查器（consistency checker），并且能够告诉你集群里面哪些写操作丢失，又或者多执行了某些客户端没有确认到的 INCR 命令。在前一种情况中， consistency-test.rb 记录的计数器值将比集群记录的计数器值要大； 而在后一种情况中， consistency-test.rb 记录的计数器值将比集群记录的计数器值要小。<br>运行 consistency-test 程序将产生类似以下的输出：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ ruby consistency-test.rb</span><br><span class="line">925 R (0 err) | 925 W (0 err) |</span><br><span class="line">5030 R (0 err) | 5030 W (0 err) |</span><br><span class="line">9261 R (0 err) | 9261 W (0 err) |</span><br><span class="line">13517 R (0 err) | 13517 W (0 err) |</span><br><span class="line">17780 R (0 err) | 17780 W (0 err) |</span><br><span class="line">22025 R (0 err) | 22025 W (0 err) |</span><br><span class="line">25818 R (0 err) | 25818 W (0 err) |</span><br></pre></td></tr></table></figure></p>
+<p>结果展示了执行的读和 写,和错误(由于系统不可用而没有接受的查询发生的错误）的数量。<br>如果程序察觉了不一致的情况出现， 它将在输出行的末尾显式不一致的详细情况。比如说， 如果我们在 consistency-test.rb 运行的过程中， 手动修改某个计数器的值：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">$ redis-cli -h 127.0.0.1 -p 7000 <span class="built_in">set</span> key_217 0</span><br><span class="line">OK</span><br><span class="line"></span><br><span class="line">(<span class="keyword">in</span> the other tab I see...)</span><br><span class="line"></span><br><span class="line">94774 R (0 err) | 94774 W (0 err) |</span><br><span class="line">98821 R (0 err) | 98821 W (0 err) |</span><br><span class="line">102886 R (0 err) | 102886 W (0 err) | 114 lost |</span><br><span class="line">107046 R (0 err) | 107046 W (0 err) | 114 lost |</span><br></pre></td></tr></table></figure></p>
+<p>在我们修改计数器值的时候， 计数器的正确值是 114 （执行了 114 次 INCR 命令）， 因为我们将计数器的值设成了 0 ， 所以 consistency-test.rb 会向我们报告说丢失了 114 个 INCR 命令。<br>这个程序作为测试程序很有意思，所以我们用这个程序来测试故障恢复.</p>
+<h2 id="Testing-the-failover"><a href="#Testing-the-failover" class="headerlink" title="Testing the failover"></a>Testing the failover</h2><p>注意：在这个测试过程中，你要一直运行consistency test程序。<br>要触发一次故障转移， 最简单的办法就是令集群中的某个主节点进入下线状态。首先用以下命令列出集群中的所有主节点：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ redis-cli -p 7000 cluster nodes | grep master</span><br><span class="line">3e3a6cb0d9a9a87168e266b0a0b24026c0aae3f0 127.0.0.1:7001 master - 0 1385482984082 0 connected 5960-10921</span><br><span class="line">2938205e12de373867bf38f1ca29d31d0ddb3e46 127.0.0.1:7002 master - 0 1385482983582 0 connected 11423-16383</span><br><span class="line">97a3a64667477371c4479320d683e4c8db5858b1 :0 myself,master - 0 0 0 connected 0-5959 10922-11422</span><br></pre></td></tr></table></figure></p>
+<p>通过命令输出得知端口号为 7000 、 7001 和 7002 的节点都是主节点， 然后我们可以通过向端口号为7002 的主节点发送 DEBUG SEGFAULT 命令， 让这个主节点崩溃：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ redis-cli -p 7002 debug segfault</span><br><span class="line">Error: Server closed the connection</span><br></pre></td></tr></table></figure></p>
+<p>现在我们查看consistency test输出的报表信息：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">18849 R (0 err) | 18849 W (0 err) |</span><br><span class="line">23151 R (0 err) | 23151 W (0 err) |</span><br><span class="line">27302 R (0 err) | 27302 W (0 err) |</span><br><span class="line"></span><br><span class="line">... many error warnings here ...</span><br><span class="line"></span><br><span class="line">29659 R (578 err) | 29660 W (577 err) |</span><br><span class="line">33749 R (578 err) | 33750 W (577 err) |</span><br><span class="line">37918 R (578 err) | 37919 W (577 err) |</span><br><span class="line">42077 R (578 err) | 42078 W (577 err) |</span><br></pre></td></tr></table></figure></p>
+<p>从 consistency-test 的这段输出可以看到， 集群在执行故障转移期间， 总共丢失了 578 个读命令和 577 个写命令， 但是并没有产生任何数据不一致。这听上去可能有点奇怪， 因为在教程的开头我们提到过， Redis 使用的是异步复制， 在执行故障转移期间， 集群可能会丢失写命令。但是在实际上， 丢失命令的情况并不常见， 因为 Redis 几乎是同时执行将命令回复发送给客户端， 以及将命令复制给从节点这两个操作， 所以实际上造成命令丢失的时间窗口是非常小的。不过， 尽管出现的几率不高， 但丢失命令的情况还是有可能会出现的， 所以我们对 Redis 集群不能提供强一致性的这一描述仍然是正确的。现在， 让我们使用 cluster nodes 命令,查看集群在执行故障转移操作之后， 主从节点的布局情况：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ redis-cli -p 7000 cluster nodes</span><br><span class="line">3fc783611028b1707fd65345e763befb36454d73 127.0.0.1:7004 slave 3e3a6cb0d9a9a87168e266b0a0b24026c0aae3f0 0 1385503418521 0 connected</span><br><span class="line">a211e242fc6b22a9427fed61285e85892fa04e08 127.0.0.1:7003 slave 97a3a64667477371c4479320d683e4c8db5858b1 0 1385503419023 0 connected</span><br><span class="line">97a3a64667477371c4479320d683e4c8db5858b1 :0 myself,master - 0 0 0 connected 0-5959 10922-11422</span><br><span class="line">3c3a0c74aae0b56170ccb03a76b60cfe7dc1912e 127.0.0.1:7005 master - 0 1385503419023 3 connected 11423-16383</span><br><span class="line">3e3a6cb0d9a9a87168e266b0a0b24026c0aae3f0 127.0.0.1:7001 master - 0 1385503417005 0 connected 5960-10921</span><br><span class="line">2938205e12de373867bf38f1ca29d31d0ddb3e46 127.0.0.1:7002 slave 3c3a0c74aae0b56170ccb03a76b60cfe7dc1912e 0 1385503418016 3 connected</span><br></pre></td></tr></table></figure></p>
+<p>现在masters运行在 7000, 7001 和 7005端口上. 原来的master 7002现在变成了一个7005的一个从节点.<br>CLUSTER NODES 命令的输出看起来有点复杂,其实他非常的简单，含义如下:</p>
+<ul>
+<li>节点ID</li>
+<li>IP:端口</li>
+<li>标志: master, slave, myself, fail, …</li>
+<li>如果是个从节点, 这里是它的主节点的NODE ID</li>
+<li>集群最近一次向节点发送 PING 命令之后， 过去了多长时间还没接到回复。.</li>
+<li>节点最近一次返回 PONG 回复的时间。</li>
+<li>节点的配置纪元（configuration epoch）：详细信息请参考 Redis 集群规范 。</li>
+<li>节点连接状态。</li>
+<li>哈希槽的服务。</li>
+</ul>
+<h2 id="Manual-failover"><a href="#Manual-failover" class="headerlink" title="Manual failover"></a>Manual failover</h2><p>有的时候在主节点没有任何问题的情况下强制手动故障转移也是很有必要的，比如想要升级主节点的Redis进程，我们可以通过故障转移将其转为slave再进行升级操作来避免对集群的可用性造成很大的影响。<br>Redis集群使用 <a href="https://redis.io/commands/cluster-failover" target="_blank" rel="noopener">CLUSTER FAILOVER</a>命令来进行故障转移，不过要在被转移的主节点的从节点上执行该命令。<br>手动故障转移比主节点失败自动故障转移更加安全，因为手动故障转移时客户端的切换是在确保新的主节点完全复制了失败的旧的主节点数据的前提下下发生的，所以避免了数据的丢失。</p>
+<p>执行手动故障转移时查看从节点日志记录如下:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Manual failover user request accepted.</span></span><br><span class="line"><span class="comment"># Received replication offset for paused master manual failover: 347540</span></span><br><span class="line"><span class="comment"># All master replication stream processed, manual failover can start.</span></span><br><span class="line"><span class="comment"># Start of election delayed for 0 milliseconds (rank #0, offset 347540).</span></span><br><span class="line"><span class="comment"># Starting a failover election for epoch 7545.</span></span><br><span class="line"><span class="comment"># Failover election won: I'm the new master.</span></span><br></pre></td></tr></table></figure></p>
+<p>基本过程如下：客户端不再链接我们淘汰的主节点，同时主节点向从节点发送复制偏移量,从节点得到复制偏移量后故障转移开始,接着通知主节点进行配置切换,当客户端在旧的master上解锁后重新连接到新的主节点上。</p>
+<h2 id="Adding-a-new-node"><a href="#Adding-a-new-node" class="headerlink" title="Adding a new node"></a>Adding a new node</h2><p>添加新的节点的基本过程就是添加一个空的节点然后移动一些数据给它,一种情况是添加一个新的主节点,或者告诉这个节点设置为一个已知节点的副本，这种情况下它是一个从节点。<br>针对这两种情况，本节都会介绍，先从添加主节点开始。<br>两种情况执行的第一步都是添加一个空节点。<br>启动一个端口为7006的新节点（在我们已存在的6个节点里已经使用了7000到7005的端口），使用和其他节点相同的配置，除了端口不一样，按照以下流程执行：</p>
+<ul>
+<li>在终端打开一个新的标签页。</li>
+<li>进入cluster-test 目录。</li>
+<li>创建一个名为7006的目录。</li>
+<li>和其他节点一样，创建redis.conf文件,需要将端口号改成7006.</li>
+<li>最后启动节点 ../redis-server ./redis.conf</li>
+</ul>
+<p>此时服务应该能够正常运行。<br>现在我们使用redis-trib手动将这个节点添加到已存在的集群环境。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./redis-trib.rb add-node 127.0.0.1:7006 127.0.0.1:7000</span><br></pre></td></tr></table></figure></p>
+<p>可以看到.使用<strong>add-node</strong>命令来添加节点，第一个参数是新节点的地址，第二个参数是任意一个已经存在的节点的IP和端口。<br>在操作过程中redis-trib其实帮助我们做了很少的事情，它只是给这个节点发送了一个<a href="https://redis.io/commands/cluster-meet" target="_blank" rel="noopener">CLUSTER MEET</a>消息,这件事情你也可以手动执行。<br>redis-trib在操作之前会检查集群的状态，所以用redis-trib来执行操作是比较好的范式。<br>我们可以看到新的节点已经添加到集群中:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">redis 127.0.0.1:7006&gt; cluster nodes</span><br><span class="line">3e3a6cb0d9a9a87168e266b0a0b24026c0aae3f0 127.0.0.1:7001 master - 0 1385543178575 0 connected 5960-10921</span><br><span class="line">3fc783611028b1707fd65345e763befb36454d73 127.0.0.1:7004 slave 3e3a6cb0d9a9a87168e266b0a0b24026c0aae3f0 0 1385543179583 0 connected</span><br><span class="line">f093c80dde814da99c5cf72a7dd01590792b783b :0 myself,master - 0 0 0 connected</span><br><span class="line">2938205e12de373867bf38f1ca29d31d0ddb3e46 127.0.0.1:7002 slave 3c3a0c74aae0b56170ccb03a76b60cfe7dc1912e 0 1385543178072 3 connected</span><br><span class="line">a211e242fc6b22a9427fed61285e85892fa04e08 127.0.0.1:7003 slave 97a3a64667477371c4479320d683e4c8db5858b1 0 1385543178575 0 connected</span><br><span class="line">97a3a64667477371c4479320d683e4c8db5858b1 127.0.0.1:7000 master - 0 1385543179080 0 connected 0-5959 10922-11422</span><br><span class="line">3c3a0c74aae0b56170ccb03a76b60cfe7dc1912e 127.0.0.1:7005 master - 0 1385543177568 3 connected 11423-16383</span><br></pre></td></tr></table></figure></p>
+<p>新节点现在已经连接上了集群环境， 成为集群的一份子， 并且可以对客户端的命令请求进行转向了， 但是和其他主节点相比， 新节点还有两点区别：</p>
+<ul>
+<li>新节点不包含数据，也没有指定哈希槽.</li>
+<li>因为这个主节点没有指定哈希槽，所以当从节点想提升为主节点的时候它不会参加选举。<br>接下来， 只要使用 redis-trib 程序， 将集群中的某些哈希桶移动到新节点里面， 新节点就会成为真正的主节点了。</li>
+</ul>
+<h2 id="Adding-a-new-node-as-a-replica"><a href="#Adding-a-new-node-as-a-replica" class="headerlink" title="Adding a new node as a replica"></a>Adding a new node as a replica</h2><p>我们有两种方式添加新的副本。可以像添加主节点一样再次使用redis-trib 命令，但是要加上–slave选项，像这样：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./redis-trib.rb add-node --slave 127.0.0.1:7006 127.0.0.1:7000</span><br></pre></td></tr></table></figure></p>
+<p>此处的命令和添加一个主节点命令类似，此处并没有指定添加的这个从节点的主节点，这种情况下系统会在其他的复制集中的主节点中随机选取一个作为这个从节点的主节点。<br>当然你也可以使用以下命令来指定这个新副本的主节点是哪个:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./redis-trib.rb add-node --slave --master-id 3c3a0c74aae0b56170ccb03a76b60cfe7dc1912e 127.0.0.1:7006 127.0.0.1:7000</span><br></pre></td></tr></table></figure></p>
+<p>这样我们就为新副本指定了一个主节点。<br>还有另一种方式就是通过使用<a href="https://redis.io/commands/cluster-replicate" target="_blank" rel="noopener">CLUSTER REPLICATE</a>命令转换一个空的主节点为另一个主节点的从节点。<br>举个例子：在我们的节点里面有一个节点127.0.0.1:7005 目前是节点IDNode ID为 3c3a0c74aae0b56170ccb03a76b60cfe7dc1912e的副本，只需要连接到新的节点（空主节点）发送以下命令：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">redis 127.0.0.1:7006&gt; cluster replicate 3c3a0c74aae0b56170ccb03a76b60cfe7dc1912e</span><br></pre></td></tr></table></figure></p>
+<p>就可以了。 我们新的从节点有了一些哈希槽，其他的节点也知道（过几秒后会更新他们自己的配置），可以使用如下命令确认::<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ redis-cli -p 7000 cluster nodes | grep slave | grep 3c3a0c74aae0b56170ccb03a76b60cfe7dc1912e</span><br><span class="line">f093c80dde814da99c5cf72a7dd01590792b783b 127.0.0.1:7006 slave 3c3a0c74aae0b56170ccb03a76b60cfe7dc1912e 0 1385543617702 3 connected</span><br><span class="line">2938205e12de373867bf38f1ca29d31d0ddb3e46 127.0.0.1:7002 slave 3c3a0c74aae0b56170ccb03a76b60cfe7dc1912e 0 1385543617198 3 connected</span><br></pre></td></tr></table></figure></p>
+<p>节点 3c3a0c… 有两个从节点， 7002 (已经存在的) 和 7006 (新添加的)。</p>
+<h2 id="Removing-a-node"><a href="#Removing-a-node" class="headerlink" title="Removing a node"></a>Removing a node</h2><p>只需要通过redis-trib的del-node命令就可以移除一个从节点：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./redis-trib del-node 127.0.0.1:7000 `&lt;node-id&gt;`</span><br></pre></td></tr></table></figure></p>
+<p>第一个参数是集群中随机的一个节点，第二个参数是你想删除的节点ID。<br>使用同样的方法移除主节点,不过在移除主节点前，<strong>需要确保这个主节点是空的</strong>。如果不是空的,需要将这个节点的数据重新分片到其他主节点上。<br>移除的另一种方法是手动执行故障转移，等从节点作为新的主节点后在将它删除，不过这种情况下不会减少集群节点的数量，这种情况下，需要重新分片。</p>
+<h2 id="Replicas-migration"><a href="#Replicas-migration" class="headerlink" title="Replicas migration"></a>Replicas migration</h2><p>在集群环境里可以在任何时间执行以下命令来重新配置从节点对应的主节点：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">CLUSTER REPLICATE &lt;master-node-id&gt;</span><br></pre></td></tr></table></figure></p>
+<p>在特定的场景下，不需要系统管理员的协助下，自动将一个从节点从当前的主节点切换到另一个主节 的自动重新配置的过程叫做复制迁移（从节点迁移），从节点的迁移能够提高整个Redis集群的可用性。<br>注意：你可以阅读（<a href="https://redis.io/topics/cluster-spec" target="_blank" rel="noopener">Redis集群规范</a>）了解细节。在这里我们只提供一部分信息告诉你怎么做。<br>The reason why you may want to let your cluster replicas to move from one master to another under certain condition, is that usually the Redis Cluster is as resistant to failures as the number of replicas attached to a given master.<br>For example a cluster where every master has a single replica can’t continue operations if the master and its replica fail at the same time, simply because there is no other instance to have a copy of the hash slots the master was serving. However while netsplits are likely to isolate a number of nodes at the same time, many other kind of failures, like hardware or software failures local to a single node, are a very notable class of failures that are unlikely to happen at the same time, so it is possible that in your cluster where every master has a slave, the slave is killed at 4am, and the master is killed at 6am. This still will result in a cluster that can no longer operate.<br>To improve reliability of the system we have the option to add additional replicas to every master, but this is expensive. Replica migration allows to add more slaves to just a few masters. So you have 10 masters with 1 slave each, for a total of 20 instances. However you add, for example, 3 instances more as slaves of some of your masters, so certain masters will have more than a single slave.<br>With replicas migration what happens is that if a master is left without slaves, a replica from a master that has multiple slaves will migrate to the orphaned master. So after your slave goes down at 4am as in the example we made above, another slave will take its place, and when the master will fail as well at 5am, there is still a slave that can be elected so that the cluster can continue to operate.<br>So what you should know about replicas migration in short?</p>
+<ul>
+<li>The cluster will try to migrate a replica from the master that has the greatest number of replicas in a given moment.</li>
+<li>To benefit from replica migration you have just to add a few more replicas to a single master in your cluster, it does not matter what master.</li>
+<li>There is a configuration parameter that controls the replica migration feature that is called cluster-migration-barrier: you can read more about it in the example redis.conf file provided with Redis Cluster.</li>
+</ul>
+<h2 id="Upgrading-nodes-in-a-Redis-Cluster"><a href="#Upgrading-nodes-in-a-Redis-Cluster" class="headerlink" title="Upgrading nodes in a Redis Cluster"></a>Upgrading nodes in a Redis Cluster</h2><p>Upgrading slave nodes is easy since you just need to stop the node and restart it with an updated version of Redis. If there are clients scaling reads using slave nodes, they should be able to reconnect to a different slave if a given one is not available.<br>Upgrading masters is a bit more complex, and the suggested procedure is:</p>
+<ol>
+<li>Use CLUSTER FAILOVER to trigger a manual failover of the master to one of its slaves (see the “Manual failover” section of this documentation).</li>
+<li>Wait for the master to turn into a slave.</li>
+<li>Finally upgrade the node as you do for slaves.</li>
+<li>If you want the master to be the node you just upgraded, trigger a new manual failover in order to turn back the upgraded node into a master.</li>
+</ol>
+<p>Following this procedure you should upgrade one node after the other until all the nodes are upgraded.</p>
+<h2 id="Migrating-to-Redis-Cluster"><a href="#Migrating-to-Redis-Cluster" class="headerlink" title="Migrating to Redis Cluster"></a>Migrating to Redis Cluster</h2><p>Users willing to migrate to Redis Cluster may have just a single master, or may already using a preexisting sharding setup, where keys are split among N nodes, using some in-house algorithm or a sharding algorithm implemented by their client library or Redis proxy.<br>In both cases it is possible to migrate to Redis Cluster easily, however what is the most important detail is if multiple-keys operations are used by the application, and how. There are three different cases:</p>
+<ol>
+<li>Multiple keys operations, or transactions, or Lua scripts involving multiple keys, are not used. Keys are accessed independently (even if accessed via transactions or Lua scripts grouping multiple commands, about the same key, together).</li>
+<li>Multiple keys operations, transactions, or Lua scripts involving multiple keys are used but only with keys having the same hash tag, which means that the keys used together all have a {…} sub-string that happens to be identical. For example the following multiple keys operation is defined in the context of the same hash tag: SUNION {user:1000}.foo {user:1000}.bar.</li>
+<li>Multiple keys operations, transactions, or Lua scripts involving multiple keys are used with key names not having an explicit, or the same, hash tag.</li>
+</ol>
+<p>The third case is not handled by Redis Cluster: the application requires to be modified in order to don’t use multi keys operations or only use them in the context of the same hash tag.<br>Case 1 and 2 are covered, so we’ll focus on those two cases, that are handled in the same way, so no distinction will be made in the documentation.<br>Assuming you have your preexisting data set split into N masters, where N=1 if you have no preexisting sharding, the following steps are needed in order to migrate your data set to Redis Cluster:</p>
+<ol>
+<li>Stop your clients. No automatic live-migration to Redis Cluster is currently possible. You may be able to do it orchestrating a live migration in the context of your application / environment.</li>
+<li>Generate an append only file for all of your N masters using the BGREWRITEAOF command, and waiting for the AOF file to be completely generated.</li>
+<li>Save your AOF files from aof-1 to aof-N somewhere. At this point you can stop your old instances if you wish (this is useful since in non-virtualized deployments you often need to reuse the same computers).</li>
+<li>Create a Redis Cluster composed of N masters and zero slaves. You’ll add slaves later. Make sure all your nodes are using the append only file for persistence.</li>
+<li>Stop all the cluster nodes, substitute their append only file with your pre-existing append only files, aof-1 for the first node, aof-2 for the second node, up to aof-N.</li>
+<li>Restart your Redis Cluster nodes with the new AOF files. They’ll complain that there are keys that should not be there according to their configuration.</li>
+<li>Use redis-trib fix command in order to fix the cluster so that keys will be migrated according to the hash slots each node is authoritative or not.</li>
+<li>Use redis-trib check at the end to make sure your cluster is ok.</li>
+<li>Restart your clients modified to use a Redis Cluster aware client library.</li>
+</ol>
+<p>There is an alternative way to import data from external instances to a Redis Cluster, which is to use the redis-trib import command.<br>The command moves all the keys of a running instance (deleting the keys from the source instance) to the specified pre-existing Redis Cluster. However note that if you use a Redis 2.8 instance as source instance the operation may be slow since 2.8 does not implement migrate connection caching, so you may want to restart your source instance with a Redis 3.x version before to perform such operation.</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Redis/" rel="tag"># Redis</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/10/15/Redis-Replication-Keepalived/" rel="next" title="Redis Replication+Keepalived">
+                <i class="fa fa-chevron-left"></i> Redis Replication+Keepalived
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/images/avatar.jpg"
+                alt="陈均" />
+            
+              <p class="site-author-name" itemprop="name">陈均</p>
+              <p class="site-description motion-element" itemprop="description">世间万物皆空。唯其空，便能包容万物。</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">28</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">11</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">11</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Redis-Cluster-101"><span class="nav-number">1.</span> <span class="nav-text">Redis Cluster 101</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Redis-Cluster-TCP-ports"><span class="nav-number">2.</span> <span class="nav-text">Redis Cluster TCP ports</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Redis-Cluster-and-Docker"><span class="nav-number">3.</span> <span class="nav-text">Redis Cluster and Docker</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Redis-Cluster-data-sharding"><span class="nav-number">4.</span> <span class="nav-text">Redis Cluster data sharding</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Redis-Cluster-master-slave-model"><span class="nav-number">5.</span> <span class="nav-text">Redis Cluster master-slave model</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Redis-Cluster-consistency-guarantees"><span class="nav-number">6.</span> <span class="nav-text">Redis Cluster consistency guarantees</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Redis-Cluster-configuration-parameters"><span class="nav-number">7.</span> <span class="nav-text">Redis Cluster configuration parameters</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Creating-and-using-a-Redis-Cluster"><span class="nav-number">8.</span> <span class="nav-text">Creating and using a Redis Cluster</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Creating-the-cluster"><span class="nav-number">9.</span> <span class="nav-text">Creating the cluster</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Creating-a-Redis-Cluster-using-the-create-cluster-script"><span class="nav-number">10.</span> <span class="nav-text">Creating a Redis Cluster using the create-cluster script</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Playing-with-the-cluster"><span class="nav-number">11.</span> <span class="nav-text">Playing with the cluster</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Writing-an-example-app-with-redis-rb-cluster"><span class="nav-number">12.</span> <span class="nav-text">Writing an example app with redis-rb-cluster</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Resharding-the-cluster"><span class="nav-number">13.</span> <span class="nav-text">Resharding the cluster</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Scripting-a-resharding-operation"><span class="nav-number">14.</span> <span class="nav-text">Scripting a resharding operation</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#A-more-interesting-example-application"><span class="nav-number">15.</span> <span class="nav-text">A more interesting example application</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Testing-the-failover"><span class="nav-number">16.</span> <span class="nav-text">Testing the failover</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Manual-failover"><span class="nav-number">17.</span> <span class="nav-text">Manual failover</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Adding-a-new-node"><span class="nav-number">18.</span> <span class="nav-text">Adding a new node</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Adding-a-new-node-as-a-replica"><span class="nav-number">19.</span> <span class="nav-text">Adding a new node as a replica</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Removing-a-node"><span class="nav-number">20.</span> <span class="nav-text">Removing a node</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Replicas-migration"><span class="nav-number">21.</span> <span class="nav-text">Replicas migration</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Upgrading-nodes-in-a-Redis-Cluster"><span class="nav-number">22.</span> <span class="nav-text">Upgrading nodes in a Redis Cluster</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Migrating-to-Redis-Cluster"><span class="nav-number">23.</span> <span class="nav-text">Migrating to Redis Cluster</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">陈均</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动 v3.7.1</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Pisces</a> v6.3.0</div>
+
+
+
+  <div class="footer-custom"><a target="_blank" rel="external nofollow" href="http://www.beian.miit.gov.cn"><b>蜀ICP备17001803号</b></a></div>
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.3.0"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=6.3.0"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.3.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.3.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.3.0"></script>
+
+
+
+  
+
+  
+    <script id="dsq-count-scr" src="https://cjoop.disqus.com/count.js" async></script>
+  
+
+  
+    <script type="text/javascript">
+      var disqus_config = function () {
+        this.page.url = 'http://cjoop.top/2016/10/20/Redis-Cluster-Tutorial/';
+        this.page.identifier = '2016/10/20/Redis-Cluster-Tutorial/';
+        this.page.title = 'Redis cluster tutorial';
+        };
+      function loadComments () {
+        var d = document, s = d.createElement('script');
+        s.src = 'https://cjoop.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      }
+      
+        loadComments();
+      
+    </script>
+  
+
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("X2YtjBbKwWtfKz2jH6SBGpLa-gzGzoHsz", "S6zjXgoW7l4HGNvpcJrXroPJ");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            
+            counter.save(null, {
+              success: function(counter) {
+                
+                  var $element = $(document.getElementById(url));
+                  $element.find('.leancloud-visitors-count').text(counter.get('time'));
+                
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            
+              var $element = $(document.getElementById(url));
+              $element.find('.leancloud-visitors-count').text('Counter not initialized! See more at console err msg.');
+              console.error('ATTENTION! LeanCloud counter has security bug, see here how to solve it: https://github.com/theme-next/hexo-leancloud-counter-security. \n But you also can use LeanCloud without security, by set \'security\' option to \'false\'.');
+            
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
